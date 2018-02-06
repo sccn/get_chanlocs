@@ -89,7 +89,7 @@ disp('Press "+/-" to zoom in/out');
 disp('Press "w/a/s/d" to rotate');
 disp('Press "q" to quit and advance when done');
 % open a figure
-figure('Name','GetChanLocs')
+figure('Name','getChanLocs')
 
 % plot the faces of the 2D or 3D triangulation
 headshape = fixpos(varargin{1});
@@ -247,6 +247,7 @@ while ~done
             fprintf('Click not registered. Make sure points selected are within boundaries of 3D Model\n')
         elseif size(selected,1)+1==size(chanLabels,1)
             selected(end+1,:) = p;
+			suptitle(sprintf('Press "q" to advance'))
             if strcmp(chanLabels{1},'NAS')
                 fprintf('Selected %s at [%9.4f %9.4f %9.4f] (%d/%d) fiducials \n', char(chanLabels(size(selected,1))),...
                     selected(end,1), selected(end,2), selected(end,3), size(selected,1),size(chanLabels,1));
