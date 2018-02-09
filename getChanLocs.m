@@ -14,14 +14,20 @@
 %                        skintones with grey to anonymize subject's face
 %   'chanLabels'      - (Default = {EEG.chanlocs(1,:).labels}') Label names
 %                        for EEG channels (and misc sensors) to be localized.
+%   'createRefModel'  - (Default = 0) Create and save rotated model with
+%                        electrode label X location pairings to use as reference
 %                        Default channel label list is extracted from EEG recording. 
 %   'deleteTxtOutput' - (Default = 1) Delete text file containing electrode labels and 
 %                        locations after importing to EEGLAB .set file.
 %   'moveElecInwards' - (Default = 7.50) Move electrode locations towards (in mm)
 %                        scalp to adjust for cap and electrode well thickness.
 %                        Negative numbers result in an outward move, away from the scalp.
-%   'saveName'        - (Default =  strcat(objPath, filesep, 'getChanLocs.txt')) Full filename 
-%                        (including path) of output file containing electrode labels
+%   'refPath'         - (Default = [getChanLocsFolder, filesep, refModel] Full filepath to folder 
+%                        to load reference model files [Model.obj, Model.jpg, Model.mtl getChanLocs.txt]
+%   'refSaveName'     - (Default = [refPath, filesep, 'Model.obj'] filename (including path)
+%                        of output file to save rotated model to be used as reference
+%   'saveName'        - (Default = strcat(objPath, filesep, 'getChanLocs.txt')) Full filename 
+%                       (including path) of output file to save electrode labels
 %                        and locations. Imported into EEGLAB using readlocs(). Can be set to 
 %                        automatically delete after import (see Optional Inputs: deleteTxtOutput)
 %
@@ -35,6 +41,7 @@
 %   Institute for Neural Computation, UC San Diego
 %
 % History: 
+%   07 Feb 2018 v1.4  CL. Now supports reference model
 %   26 Jan 2018 v1.32 CL. try/catch on moveElecInwards for now so that process continues and locations are saved.
 %   25 Jan 2018 v1.31 CL. Addressing issues with mex files when solid_angle.m (for moveElecInwards) fails. 
 %   25 Jan 2018 v1.3  CL. Version check for string() when writing text file.
@@ -42,7 +49,7 @@
 %   19 Jan 2018	v1.1  CL. Switch fiducials to L/RHT (from L/RPA). Removed [] for channel / fiducial names. 
 %   20 Dec 2017 v1.0  CL. Special thanks to M. Milham and L. Ai (@Child Mind Institute); N. Langer (@University of Zurich);
 %					     and H. Tanaka (@Japan Advanced Institute of Science and Technology) for interest in testing.
-%   4  Dec 2017 v0.1 Clement Lee. Created.
+%   4  Dec 2017 v0.1  Clement Lee. Created.
 %
 % This program is free software; you can redistribute it and/or modify
 % it under the terms of the GNU General Public License as published by
@@ -76,26 +83,36 @@ if ~isfield(opts,'anonymizeFace')
     opts.anonymizeFace = 1; end
 if ~isfield(opts,'chanLabels')
     opts.chanLabels = {EEG.chanlocs(1,:).labels}'; end
+if ~isfield(opts,'createRefModel')
+    opts.createRefModel = 0; end
 if ~isfield(opts,'deleteTxtOutput')
     opts.deleteTxtOutput = 1; end
 if ~isfield(opts,'moveElecInwards')
     opts.moveElecInwards = 7.50; end
+if ~isfield(opts,'refPath')
+    tmp = which('getChanLocs'); 
+    opts.refPath = [tmp(1:end-13) 'refModel']; clear('tmp'); 
+end
 if ~isfield(opts,'renameAxis')
     opts.renameAxis = false; end 
 if ~isfield(opts,'saveName')
     opts.saveName = strcat(objPath, filesep, 'getChanLocs.txt');
 elseif isempty(regexp(opts.saveName, '.txt','once')) % endsWith(opts.saveName, '.txt')
-    opts.saveName = strcat(opts.saveName,'.txt'); end
+    opts.saveName = strcat(opts.saveName,'.txt'); 
+end
 fprintf('Electrode location .txt file will be written to %s\n', opts.saveName)
 
+%% anonymize face
 if opts.anonymizeFace
 fprintf('Anonymizing face by replacing skintones with grey...\n')
 anonFace(strcat(objPath, filesep, 'Model.jpg'));
 end
 
+%% load model
 fprintf('Loading 3D model in mm scale...\n')
 head_surface = ft_read_headshape(strcat(objPath, filesep, 'Model.obj'), 'unit','mm');
 
+%% locate fiducials and align
 fprintf('Select (in order) Nasion, Left Helix/Tragus Intersection, and Right Helix/Tragus Intersection...\n')
 cfg = [];
 cfg.method = 'headshape';
@@ -110,25 +127,36 @@ cfg.coordsys = 'bti';
 cfg.fiducial.nas    = fiducials.elecpos(1,:); %position of NAS
 cfg.fiducial.lpa    = fiducials.elecpos(2,:); %position of LHT
 cfg.fiducial.rpa    = fiducials.elecpos(3,:); %position of RHT
+fiducialPos = [cfg.fiducial.nas; cfg.fiducial.lpa; cfg.fiducial.rpa]; %for createRefModel
 head_surface = ft_meshrealign(cfg,head_surface);
 
-fprintf('Select electrode locations...\n')
+%% location selection
 cfg = [];
 cfg.method = 'headshape';
 cfg.channel = opts.chanLabels;
-elec = ft_electrodeplacement(cfg,head_surface);
+try
+    [cfg.refHeadModel, cfg.refLocs] = prepareRefModel(opts.refPath);
+    fprintf('Select electrode locations...\n')
+    elec = electrodeplacement_ref(cfg,head_surface);
+catch e
+    fprintf(e.message)
+    fprintf('Reference model version (beta) failed, restarting electrode selection without reference...\n')
+    fprintf('Select electrode locations...\n')
+    elec = ft_electrodeplacement(cfg,head_surface);
+end
 close gcf
 
 if opts.moveElecInwards
 	try
-    cfg = [];
-    cfg.method = 'moveinward';
-    cfg.moveinward = opts.moveElecInwards;
-    cfg.elec = elec;
-    elec = ft_electroderealign(cfg);
-	fprintf('Moving electrode locations from cap surface in towards scalp by %2.2f mm...\n', opts.moveElecInwards)
-    catch
-	warning('Failed to move electrodes inwards. Bug is being addressed. Proceeding to save locations as is...')
+        cfg = [];
+        cfg.method = 'moveinward';
+        cfg.moveinward = opts.moveElecInwards;
+        cfg.elec = elec;
+        elec = ft_electroderealign(cfg);
+        fprintf('Moving electrode locations from cap surface in towards scalp by %2.2f mm...\n', opts.moveElecInwards)
+    catch e
+        fprintf(e.message)
+        warning('Failed to move electrodes inwards. Bug is being addressed. Proceeding to save locations as is...')
 end
 
 %% format and save ascii for import. delete file afterwards if requested
@@ -137,20 +165,30 @@ fileID = fopen(opts.saveName,'w');
 
 v = ver('Matlab');
 if str2double(v.Version)>=9.1
-% 'labels','X','Y','Z'
-fprintf(fileID,'%6s %9.4f %9.4f %9.4f\n', [string(elec.label) ; elec.elecpos(:,:)']);
+    % 'labels','X','Y','Z'
+    fprintf(fileID,'%6s %9.4f %9.4f %9.4f\n', [string(elec.label) ; elec.elecpos(:,:)']);
 else
     for ii = 1:length(elec.label)
     fprintf(fileID, '%6s %9.4f %9.4f %9.4f\n', elec.label{ii}, elec.elecpos(ii,:));
     end
 end
+
+if opts.createRefModel == 1
+fprintf(fileID,'%6s %9.4f %9.4f %9.4f\n', 'NAS' , fiducialPos(1,:),...
+    'RHT' , fiducialPos(2,:), 'LHT' , fiducialPos(3,:));
+end
+
 fclose(fileID);
 
 fprintf('Importing locations with readlocs()...\n')
 EEG.chanlocs = readlocs(opts.saveName,'format',{'labels','X','Y','Z'});
 if opts.deleteTxtOutput == 1
-    fprintf('Deleting txt file with electrode locations...\n')
-    delete(opts.saveName)
+    if opts.createRefModel == 1
+        warning('createRefModel is on but so is deleteTxtOutput! .txt file not deleted...')
+    else
+        fprintf('Deleting .txt file with electrode locations...\n')
+        delete(opts.saveName)
+    end
 end
 fprintf('Electrode Localization by 3D Object Finished!\n')
 end
@@ -169,4 +207,28 @@ mask = gMask & uMask;
 ogI(mask(:,:,[1,1,1])) = 128;
 % Overwrite Image
 imwrite(ogI, objJpg)
+end
+
+function [refHeadModel, refLocs] = prepareRefModel(refPath)
+if ~(any(size(dir([refPath filesep '*.obj']),1))&&...
+        any(size(dir([refPath filesep '*.jpg']),1))&&...
+        any(size(dir([refPath filesep '*.mtl']),1))&&...
+        any(size(dir([refPath filesep '*.txt']),1)))
+    error('Reference folder must contain [Model.obj, Model.jpg, Model.mtl, getChanLocs.txt] files.')
+end
+
+fprintf('Loading reference model...\n')
+refHeadModel = ft_read_headshape(strcat(refPath, filesep, 'Model.obj'), 'unit','mm');
+
+fprintf('Reading reference locations...\n')
+refLocFile = [refPath, filesep, 'getChanLocs.txt'];
+array = loadtxt(refLocFile,'verbose','off','blankcell','off');
+array(:,1) = []; refLocs = cell2mat(array);
+
+fprintf('Aligning reference to BTi coordinates...\n')
+cfg = []; cfg.method = 'fiducial'; cfg.coordsys = 'bti';
+cfg.fiducial.nas    = refLocs(end-2,:); %position of NAS
+cfg.fiducial.lpa    = refLocs(end-1,:); %position of LHT
+cfg.fiducial.rpa    = refLocs(end  ,:); %position of RHT
+refHeadModel = ft_meshrealign(cfg,refHeadModel);
 end
