@@ -167,25 +167,21 @@ markercolor = ft_getopt(varargin, 'markercolor', 'k');
 tmp = get(gcf,'Children'); refAxes = tmp(1); modelAxes = tmp(2); clear('tmp')
 selected = zeros(0,3);
 suptitle(sprintf('Select %s', char(chanLabels(1))))
-
-% everything is added to the current figure
-holdflag = ishold;
-if ~holdflag
-    hold on
-end
+set(refAxes,'NextPlot','add'); set(modelAxes,'NextPlot','add');
 
 done = false;
 az = 0;
 el = 0;
 view(az,el);
+[sphereX, sphereY, sphereZ] = sphere;
+ref_hs = surf(refAxes, sphereX*5 + refLocs(size(selected,1)+1,1),...
+    sphereY*5 +refLocs(size(selected,1)+1,2),...
+    sphereZ*5 +refLocs(size(selected,1)+1,3));
+set(ref_hs, 'LineStyle', 'none', 'FaceColor',[1 0 0], 'FaceAlpha', 0.5);
 
-ref_hs = plot3(refAxes, refLocs(size(selected,1)+1,1), refLocs(size(selected,1)+1,2),...
-    refLocs(size(selected,1)+1,3), ['r' 'x']);
-set(ref_hs, 'MarkerSize', markersize);
-                
 while ~done
     k = waitforbuttonpress;
-    p = select3d(h);
+    p = select3d(modelAxes);
     if k == 1 %checks if waitforbuttonpress was a key
         key = get(gcf,'CurrentCharacter'); % which key was pressed (if any)?
         if strcmp(key, 'q')
@@ -207,12 +203,13 @@ while ~done
                 fprintf('Removed %s at [%9.4f %9.4f %9.4f]\n', char(chanLabels(size(selected,1))),...
                     selected(end,1), selected(end,2), selected(end,3));
                 selected = selected(1:end-1,:);
-               
-                delete(ref_hs)
-                ref_hs = plot3(refAxes, refLocs(size(selected,1)+1,1), refLocs(size(selected,1)+1,2),...
-                    refLocs(size(selected,1)+1,3), ['r' 'x']);
-                set(ref_hs, 'MarkerSize', markersize);
 
+                delete(ref_hs)
+                ref_hs = surf(refAxes, sphereX*5 + refLocs(size(selected,1)+1,1),...
+                    sphereY*5 +refLocs(size(selected,1)+1,2),...
+                    sphereZ*5 +refLocs(size(selected,1)+1,3));
+                set(ref_hs, 'LineStyle', 'none', 'FaceColor',[1 0 0], 'FaceAlpha', 0.5);
+                
                 suptitle(sprintf('Select %s', char(chanLabels(size(selected,1)+1))))
             end
         elseif strcmp(key,'+')
@@ -245,37 +242,27 @@ while ~done
         elseif size(selected,1)+1==size(chanLabels,1)
             selected(end+1,:) = p;
             cla(refAxes);
-			suptitle(sprintf('Press "q" to advance'))
-            if strcmp(chanLabels{1},'NAS')
-                fprintf('Selected %s at [%9.4f %9.4f %9.4f] (%d/%d) fiducials \n', char(chanLabels(size(selected,1))),...
-                    selected(end,1), selected(end,2), selected(end,3), size(selected,1),size(chanLabels,1));
-                fprintf(['All head fiducials now have locations.\n',...
-                    'Press "q" to quit and advance or "r" to remove last added point.\n'])
-            else
-                fprintf('Selected %s at [%9.4f %9.4f %9.4f] (%d/%d) channels \n', char(chanLabels(size(selected,1))),...
-                    selected(end,1), selected(end,2), selected(end,3), size(selected,1),size(chanLabels,1));
-                fprintf(['All channels now have locations.\n',...
-                    'Press "q" to quit and advance or "r" to remove last added point.\n'])
-            end
+            suptitle(sprintf('Press "q" to advance'))
+            fprintf('Selected %s at [%9.4f %9.4f %9.4f] (%d/%d) channels \n', char(chanLabels(size(selected,1))),...
+                selected(end,1), selected(end,2), selected(end,3), size(selected,1),size(chanLabels,1));
+            fprintf(['All channels now have locations.\n',...
+                'Press "q" to quit and advance or "r" to remove last added point.\n'])
         else
             selected(end+1,:) = p;
             suptitle(sprintf('Select %s', char(chanLabels(size(selected,1)+1))))
-            if strcmp(chanLabels{1},'NAS')
-                 fprintf('Selected %s at [%9.4f %9.4f %9.4f] (%d/%d) fiducials \n', char(chanLabels(size(selected,1))),...
-                    selected(end,1), selected(end,2), selected(end,3), size(selected,1),size(chanLabels,1));
-            else
-                fprintf('Selected %s at [%9.4f %9.4f %9.4f] (%d/%d) channels \n', char(chanLabels(size(selected,1))),...
-                    selected(end,1), selected(end,2), selected(end,3), size(selected,1),size(chanLabels,1));
-            end
+            fprintf('Selected %s at [%9.4f %9.4f %9.4f] (%d/%d) channels \n', char(chanLabels(size(selected,1))),...
+                selected(end,1), selected(end,2), selected(end,3), size(selected,1),size(chanLabels,1));
         end
         if ~isempty(marker)&&~isempty(p)
             hs = plot3(modelAxes, selected(end,1), selected(end,2), selected(end,3), [markercolor marker]);
             set(hs, 'MarkerSize', markersize);
             
             delete(ref_hs)
-            ref_hs = plot3(refAxes, refLocs(size(selected,1)+1,1), refLocs(size(selected,1)+1,2),...
-                refLocs(size(selected,1)+1,3), ['r' 'x']);
-            set(ref_hs, 'MarkerSize', markersize);
+            ref_hs = surf(refAxes, sphereX*5 + refLocs(size(selected,1)+1,1),...
+                sphereY*5 +refLocs(size(selected,1)+1,2),...
+                sphereZ*5 +refLocs(size(selected,1)+1,3));
+            set(ref_hs, 'LineStyle', 'none', 'FaceColor',[1 0 0], 'FaceAlpha', 0.5);
+            
         end
     end
 end

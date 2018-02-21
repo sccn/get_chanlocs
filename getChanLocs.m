@@ -14,18 +14,18 @@
 %                        skintones with grey to anonymize subject's face
 %   'chanLabels'      - (Default = {EEG.chanlocs(1,:).labels}') Label names
 %                        for EEG channels (and misc sensors) to be localized.
-%   'createRefModel'  - (Default = 0) Create and save rotated model with
-%                        electrode label X location pairings to use as reference
 %                        Default channel label list is extracted from EEG recording. 
+%   'createRefModel'  - (Default = 0) Create and save rotated model with
+%                        electrode label-location pairings to use as reference
 %   'deleteTxtOutput' - (Default = 1) Delete text file containing electrode labels and 
 %                        locations after importing to EEGLAB .set file.
 %   'moveElecInwards' - (Default = 7.50) Move electrode locations towards (in mm)
 %                        scalp to adjust for cap and electrode well thickness.
 %                        Negative numbers result in an outward move, away from the scalp.
 %   'refPath'         - (Default = [getChanLocsFolder, filesep, refModel] Full filepath to folder 
-%                        to load reference model files [Model.obj, Model.jpg, Model.mtl getChanLocs.txt]
-%   'refSaveName'     - (Default = [refPath, filesep, 'Model.obj'] filename (including path)
-%                        of output file to save rotated model to be used as reference
+%                        to load reference .mat file
+%   'refSaveName'     - (Default = [refPath, filesep, 'refHeadModel.mat'] filename (including path)
+%                        of output file to save rotated model and locations to be used as reference
 %   'saveName'        - (Default = strcat(objPath, filesep, 'getChanLocs.txt')) Full filename 
 %                       (including path) of output file to save electrode labels
 %                        and locations. Imported into EEGLAB using readlocs(). Can be set to 
@@ -41,6 +41,7 @@
 %   Institute for Neural Computation, UC San Diego
 %
 % History: 
+%   21 Feb 2018 v1.41 CL. Improved reference model selection and creation
 %   07 Feb 2018 v1.4  CL. Now supports reference model
 %   26 Jan 2018 v1.32 CL. try/catch on moveElecInwards for now so that process continues and locations are saved.
 %   25 Jan 2018 v1.31 CL. Addressing issues with mex files when solid_angle.m (for moveElecInwards) fails. 
@@ -66,6 +67,7 @@
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1.07  USA
 
 function EEG = getChanLocs(EEG, objPath, varargin)
+%% check 3D model input path for [.obj, .jpg,.mtl]
 if nargin < 1
 	help getChanLocs;
 	return;
@@ -78,7 +80,9 @@ elseif ~(any(size(dir([objPath filesep '*.obj']),1))&&...
     error('Please input path to folder containing [Model.obj, Model.jpg, Model.mtl] files.')
 end
 
+%% handle optional inputs
 opts = cell2struct(varargin(2:2:end),varargin(1:2:end),2);
+
 if ~isfield(opts,'anonymizeFace')
     opts.anonymizeFace = 1; end
 if ~isfield(opts,'chanLabels')
@@ -89,18 +93,19 @@ if ~isfield(opts,'deleteTxtOutput')
     opts.deleteTxtOutput = 1; end
 if ~isfield(opts,'moveElecInwards')
     opts.moveElecInwards = 7.50; end
-if ~isfield(opts,'refPath')
+if ~isfield(opts,'refPath') %#ok<ALIGN>
     tmp = which('getChanLocs'); 
-    opts.refPath = [tmp(1:end-13) 'refModel']; clear('tmp'); 
-end
-if ~isfield(opts,'renameAxis')
-    opts.renameAxis = false; end 
-if ~isfield(opts,'saveName')
+    opts.refPath = [tmp(1:end-13) 'refModel']; clear('tmp'); end
+if ~isfield(opts,'refSaveName') %#ok<ALIGN>
+    opts.refSaveName = strcat(objPath, filesep, 'getChanLocs.txt');
+elseif isempty(regexp(opts.refSaveName, '.mat','once'))
+    fprintf('Appending file extension ".mat" to refSaveName\n');
+    opts.saveName = strcat(opts.refSaveName,'.txt'); end
+if ~isfield(opts,'saveName') %#ok<ALIGN>
     opts.saveName = strcat(objPath, filesep, 'getChanLocs.txt');
-elseif isempty(regexp(opts.saveName, '.txt','once')) % endsWith(opts.saveName, '.txt')
-    opts.saveName = strcat(opts.saveName,'.txt'); 
-end
-fprintf('Electrode location .txt file will be written to %s\n', opts.saveName)
+elseif isempty(regexp(opts.saveName, '.txt','once'))
+    fprintf('Appending file extension ".txt" to saveName\n');
+    opts.saveName = strcat(opts.saveName,'.txt'); end
 
 %% anonymize face
 if opts.anonymizeFace
@@ -111,6 +116,40 @@ end
 %% load model
 fprintf('Loading 3D model in mm scale...\n')
 head_surface = ft_read_headshape(strcat(objPath, filesep, 'Model.obj'), 'unit','mm');
+
+%% load reference model
+refMats = ls([opts.refPath, filesep, '*.mat']);
+if isempty(refMats)
+    choice = questdlg('No reference .mat found. Create new reference model?', ...
+	'Reference Model', 'Yes (recommended)','No', 'Yes (recommended)');
+    switch choice
+        case 'Yes (recommended)'
+            opts.createRefModel = 1;
+        case 'No'
+            opts.createRefModel = 0;
+    end
+elseif size(refMats,1) == 1
+    choice = questdlg('One ref .mat found. Load saved or create new reference model?', ...
+	'Reference Model', 'Load saved reference','Create new reference', 'Load saved reference');
+switch choice
+    case 'Load saved reference'
+        fprintf('Loading reference model from %s...\n', [opts.refPath, filesep, refMats]);
+        load([opts.refPath, filesep, refMats])
+    case 'Create new reference'
+        opts.createRefModel = 1;
+end
+elseif size(refMats,1) > 1
+    fprintf(['Multiple .mat files found within reference model path!\n'...
+        'File names are listed, please select from drop down list\n'])
+    choice = listdlg('Name', 'Reference Model', 'PromptString','Select option:',...
+                'SelectionMode','single', 'ListString', ['Create new reference'; string(refMats)]);
+            if choice == 1 
+                opts.createRefModel = 1;
+            else
+                load([opts.refPath, filesep, refMats(choice-1,:)]);
+            end
+end
+clear refMats choice 
 
 %% locate fiducials and align
 fprintf('Select (in order) Nasion, Left Helix/Tragus Intersection, and Right Helix/Tragus Intersection...\n')
@@ -127,27 +166,66 @@ cfg.coordsys = 'bti';
 cfg.fiducial.nas    = fiducials.elecpos(1,:); %position of NAS
 cfg.fiducial.lpa    = fiducials.elecpos(2,:); %position of LHT
 cfg.fiducial.rpa    = fiducials.elecpos(3,:); %position of RHT
-fiducialPos = [cfg.fiducial.nas; cfg.fiducial.lpa; cfg.fiducial.rpa]; %for createRefModel
 head_surface = ft_meshrealign(cfg,head_surface);
+
+%% load reference model
+refMats = ls([opts.refPath, filesep, '*.mat']);
+if isempty(refMats)
+    choice = questdlg('No reference .mat found. Create new reference model?', ...
+	'Reference Model', 'Yes (recommended)','No', 'Yes (recommended)');
+    switch choice
+        case 'Yes (recommended)'
+            opts.createRefModel = 1;
+        case 'No'
+            opts.createRefModel = 0;
+    end
+elseif size(refMats,1) == 1
+    choice = questdlg('One ref .mat found. Load saved or create new reference model?', ...
+	'Reference Model', 'Load saved reference','Create new reference', 'Load saved reference');
+switch choice
+    case 'Load saved reference'
+        fprintf('Loading reference model from %s...\n', [opts.refPath, filesep, refMats]);
+        load([opts.refPath, filesep, refMats])
+    case 'Create new reference'
+        opts.createRefModel = 1;
+end
+elseif size(refMats,1) > 1
+    fprintf(['Multiple .mat files found within reference model path!\n'...
+        'File names are listed, please select from drop down list\n'])
+    choice = listdlg('Name', 'Reference Model', 'PromptString','Select option:',...
+                'SelectionMode','single', 'ListString', ['Create new reference'; string(refMats)]);
+            if choice == 1 
+                opts.createRefModel = 1;
+            else
+                load([opts.refPath, filesep, refMats(choice-1,:)]);
+            end
+end
+clear refMats choice
 
 %% location selection
 cfg = [];
 cfg.method = 'headshape';
 cfg.channel = opts.chanLabels;
+
+if opts.createRefModel == 1
+    fprintf('Select electrode locations to create new reference model...\n')
+else
 try
-    [cfg.refHeadModel, cfg.refLocs] = prepareRefModel(opts.refPath);
+    cfg.refHeadModel = refHeadModel; cfg.refLocs = refHeadModel.refLocs; %#ok<NODEF>
     fprintf('Select electrode locations...\n')
     elec = electrodeplacement_ref(cfg,head_surface);
 catch e
     fprintf(e.message)
-    fprintf('Reference model version (beta) failed, restarting electrode selection without reference...\n')
+    fprintf('Reference model version (beta) failed, restarting electrode selection...\n')
     fprintf('Select electrode locations...\n')
     elec = ft_electrodeplacement(cfg,head_surface);
 end
+end
 close gcf
 
+%% move electrodes in towards scalp
 if opts.moveElecInwards
-	try
+    try
         cfg = [];
         cfg.method = 'moveinward';
         cfg.moveinward = opts.moveElecInwards;
@@ -156,42 +234,39 @@ if opts.moveElecInwards
         fprintf('Moving electrode locations from cap surface in towards scalp by %2.2f mm...\n', opts.moveElecInwards)
     catch e
         fprintf(e.message)
-        warning('Failed to move electrodes inwards. Bug is being addressed. Proceeding to save locations as is...')
+        warning('Failed to move electrodes inwards. Saving locations as is, without moving inwards...')
+    end
 end
 
-%% format and save ascii for import. delete file afterwards if requested
-fprintf('Writing electrode locations to txt file...\n')
-fileID = fopen(opts.saveName,'w');
+%% save reference.mat
+if opts.createRefModel
+    fprintf('Saving reference .mat to %s\n', opts.refSaveName)
+    refHeadModel = head_surface; refHeadModel.refLocs = elec;
+    save(opts.refSaveName, 'refHeadModel');
+end
 
+%% format (labels','X','Y','Z') and save ascii for import. delete file afterwards if requested
+fprintf('Writing electrode locations to txt file...\n')
+
+fileID = fopen(opts.saveName,'w');
 v = ver('Matlab');
 if str2double(v.Version)>=9.1
-    % 'labels','X','Y','Z'
+
     fprintf(fileID,'%6s %9.4f %9.4f %9.4f\n', [string(elec.label) ; elec.elecpos(:,:)']);
 else
     for ii = 1:length(elec.label)
     fprintf(fileID, '%6s %9.4f %9.4f %9.4f\n', elec.label{ii}, elec.elecpos(ii,:));
     end
 end
-
-if opts.createRefModel == 1
-fprintf(fileID,'%6s %9.4f %9.4f %9.4f\n', 'NAS' , fiducialPos(1,:),...
-    'RHT' , fiducialPos(2,:), 'LHT' , fiducialPos(3,:));
-end
-
 fclose(fileID);
 
 fprintf('Importing locations with readlocs()...\n')
 EEG.chanlocs = readlocs(opts.saveName,'format',{'labels','X','Y','Z'});
 if opts.deleteTxtOutput == 1
-    if opts.createRefModel == 1
-        warning('createRefModel is on but so is deleteTxtOutput! .txt file not deleted...')
-    else
-        fprintf('Deleting .txt file with electrode locations...\n')
-        delete(opts.saveName)
-    end
+    fprintf('Deleting .txt file with electrode locations...\n')
+    delete(opts.saveName)
 end
 fprintf('Electrode Localization by 3D Object Finished!\n')
-end
 end
 
 function anonFace(objJpg) %anonymize face by replacing skintones with grey
@@ -207,28 +282,4 @@ mask = gMask & uMask;
 ogI(mask(:,:,[1,1,1])) = 128;
 % Overwrite Image
 imwrite(ogI, objJpg)
-end
-
-function [refHeadModel, refLocs] = prepareRefModel(refPath)
-if ~(any(size(dir([refPath filesep '*.obj']),1))&&...
-        any(size(dir([refPath filesep '*.jpg']),1))&&...
-        any(size(dir([refPath filesep '*.mtl']),1))&&...
-        any(size(dir([refPath filesep '*.txt']),1)))
-    error('Reference folder must contain [Model.obj, Model.jpg, Model.mtl, getChanLocs.txt] files.')
-end
-
-fprintf('Loading reference model...\n')
-refHeadModel = ft_read_headshape(strcat(refPath, filesep, 'Model.obj'), 'unit','mm');
-
-fprintf('Reading reference locations...\n')
-refLocFile = [refPath, filesep, 'getChanLocs.txt'];
-array = loadtxt(refLocFile,'verbose','off','blankcell','off');
-array(:,1) = []; refLocs = cell2mat(array);
-
-fprintf('Aligning reference to BTi coordinates...\n')
-cfg = []; cfg.method = 'fiducial'; cfg.coordsys = 'bti';
-cfg.fiducial.nas    = refLocs(end-2,:); %position of NAS
-cfg.fiducial.lpa    = refLocs(end-1,:); %position of LHT
-cfg.fiducial.rpa    = refLocs(end  ,:); %position of RHT
-refHeadModel = ft_meshrealign(cfg,refHeadModel);
 end
