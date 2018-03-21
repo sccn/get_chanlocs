@@ -96,8 +96,8 @@ headshape = fixpos(varargin{1});
 ft_plot_mesh(headshape);
 
 % plot the reference model on new axis and link the views
-axes('Position', [0.55 0.4 0.6 0.6]); axis off
-ft_plot_mesh(cfg.refHeadModel)
+axes('Position', [0.6 0.5 0.5 0.5]); axis off
+ft_plot_mesh(cfg.templateMontage)
 
 modelFig = findobj( 'Type', 'Figure', 'Name', 'getChanLocs' );
 figAxes = get(modelFig,'Children');
@@ -165,19 +165,23 @@ markersize  = ft_getopt(varargin, 'markersize', 10);
 markercolor = ft_getopt(varargin, 'markercolor', 'k');
 
 tmp = get(gcf,'Children'); refAxes = tmp(1); modelAxes = tmp(2); clear('tmp')
-selected = zeros(0,3);
-suptitle(sprintf('Select %s', char(chanLabels(1))))
 set(refAxes,'NextPlot','add'); set(modelAxes,'NextPlot','add');
 
+selected = zeros(0,3);
 done = false;
-az = 0;
-el = 0;
+az = 0; el = 0;
 view(az,el);
+
 [sphereX, sphereY, sphereZ] = sphere;
-ref_hs = surf(refAxes, sphereX*5 + refLocs(size(selected,1)+1,1),...
-    sphereY*5 +refLocs(size(selected,1)+1,2),...
-    sphereZ*5 +refLocs(size(selected,1)+1,3));
+ref_hs = surf(refAxes, sphereX*10 + refLocs(size(selected,1)+1,1),...
+    sphereY*10 +refLocs(size(selected,1)+1,2),...
+    sphereZ*10 +refLocs(size(selected,1)+1,3));
 set(ref_hs, 'LineStyle', 'none', 'FaceColor',[1 0 0], 'FaceAlpha', 0.5);
+
+supAxes = axes('pos',[0 0.95 1 1],'visible','off');
+supText = text(supAxes,.5,0,['Select ' char(chanLabels(1))],...
+    'FontSize',get(gcf,'defaultaxesfontsize')+4,...
+    'horizontalalignment','center');
 
 while ~done
     k = waitforbuttonpress;
@@ -209,30 +213,26 @@ while ~done
                     sphereY*5 +refLocs(size(selected,1)+1,2),...
                     sphereZ*5 +refLocs(size(selected,1)+1,3));
                 set(ref_hs, 'LineStyle', 'none', 'FaceColor',[1 0 0], 'FaceAlpha', 0.5);
-                
-                suptitle(sprintf('Select %s', char(chanLabels(size(selected,1)+1))))
+                set(supText,'String', ['Select ', char(chanLabels(size(selected,1)+1))]);
             end
         elseif strcmp(key,'+')
-            zoom(1.1)
+            zoom(modelAxes, 1.1)
         elseif strcmp(key,'-')
-            zoom(0.9)
+            zoom(modelAxes, 0.9)
         elseif strcmp(key,'w')
             el = el-6;
-            view(az,el)
+            view(modelAxes, az,el)
         elseif strcmp(key,'a')
             az = az+6;
-            view(az,el)
+            view(modelAxes, az,el)
         elseif strcmp(key,'s')
             el = el+6;
-            view(az,el)
+            view(modelAxes, az,el)
         elseif strcmp(key,'d')
             az = az-6;
-            view(az,el)
+            view(modelAxes, az,el)
         end
-        
-    else
-        % a new point was selected
-        
+    else   % a new point was selected
         if size(selected,1)+1>size(chanLabels,1)
             fprintf(['Number of points selected exceed number of channels!\n'...
                 'Last selected point was not added.\n'...
@@ -242,14 +242,14 @@ while ~done
         elseif size(selected,1)+1==size(chanLabels,1)
             selected(end+1,:) = p;
             cla(refAxes);
-            suptitle(sprintf('Press "q" to advance'))
+            set(supText,'String', 'Press "q" to advance');
             fprintf('Selected %s at [%9.4f %9.4f %9.4f] (%d/%d) channels \n', char(chanLabels(size(selected,1))),...
                 selected(end,1), selected(end,2), selected(end,3), size(selected,1),size(chanLabels,1));
             fprintf(['All channels now have locations.\n',...
                 'Press "q" to quit and advance or "r" to remove last added point.\n'])
         else
             selected(end+1,:) = p;
-            suptitle(sprintf('Select %s', char(chanLabels(size(selected,1)+1))))
+            set(supText,'String', ['Select ', char(chanLabels(size(selected,1)+1))]);
             fprintf('Selected %s at [%9.4f %9.4f %9.4f] (%d/%d) channels \n', char(chanLabels(size(selected,1))),...
                 selected(end,1), selected(end,2), selected(end,3), size(selected,1),size(chanLabels,1));
         end
@@ -258,17 +258,13 @@ while ~done
             set(hs, 'MarkerSize', markersize);
             
             delete(ref_hs)
-            ref_hs = surf(refAxes, sphereX*5 + refLocs(size(selected,1)+1,1),...
-                sphereY*5 +refLocs(size(selected,1)+1,2),...
-                sphereZ*5 +refLocs(size(selected,1)+1,3));
+            ref_hs = surf(refAxes, sphereX*10 + refLocs(size(selected,1)+1,1),...
+                sphereY*10 +refLocs(size(selected,1)+1,2),...
+                sphereZ*10 +refLocs(size(selected,1)+1,3));
             set(ref_hs, 'LineStyle', 'none', 'FaceColor',[1 0 0], 'FaceAlpha', 0.5);
             
         end
     end
-end
-
-if ~holdflag
-    hold off
 end
 
 function [pout, vout, viout, facevout, faceiout]  = select3d(obj)

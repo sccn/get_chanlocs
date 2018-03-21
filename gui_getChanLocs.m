@@ -196,6 +196,7 @@ saveName = get(handles.saveName,'String');
 anonymizeFace   = get(handles.anonymizeFace,'Value');
 deleteTxtOutput = get(handles.deleteTxtOutput,'Value');
 moveElecInwards = str2double(get(handles.moveElecInwards,'String'));
+close
 
 EEG  = evalin('base', 'EEG');
 EEG = getChanLocs(EEG, objPath, 'saveName', saveName, 'anonymizeFace', anonymizeFace,...

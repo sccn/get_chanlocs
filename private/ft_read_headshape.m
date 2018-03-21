@@ -50,29 +50,38 @@ function [shape] = ft_read_headshape(filename, varargin)
 unit           = ft_getopt(varargin, 'unit');
 
 % checks if there exists a .jpg file of 'filename'
-[pathstr,name]  = fileparts(filename);
-image    = fullfile(pathstr,[name,'.jpg']);
+pathstr = fileparts(filename);
+image   = fullfile(pathstr, getfield(dir([pathstr filesep '*.jpg']),'name'));
 
-% start with an empty structure
-shape           = [];
-shape.pos       = [];
-
-% Implemented for structure.io .obj thus far
-obj = read_wobj(filename);
-shape.pos     = obj.vertices;
+% Implemented for structure.io Scanner and itSeez3D .obj thus far
+[shape.pos, shape.tri, texture, textureIdx] = read_obj(filename);
 shape.pos     = shape.pos - repmat(sum(shape.pos)/length(shape.pos),[length(shape.pos),1]); %centering vertices
-shape.tri     = obj.objects(2).data.vertices;
-texture = obj.vertices_texture;
+
+%Reorder textures according to face building instructions
+f.vertInd = shape.tri; 
+f.textInd = textureIdx;
+if any(f.vertInd ~= f.textInd)
+    orderedTexture = zeros(length(f.vertInd),2);
+    for ii = 1:length(f.vertInd)
+        orderedTexture(f.vertInd(ii,:),:) = texture(f.textInd(ii,:),:);
+    end
+    texture = orderedTexture;
+end
 
 %Refines the mesh and textures to increase resolution of the
 %colormapping
-for i = 1:1
+if length(shape.tri) < 200000
+    tic
+    fprintf(['Mesh is composed of less than 200k polygons, \n'...
+        'refining using FT implementation of Banks method...\n'])
     [shape.pos, shape.tri,texture] = refine(shape.pos,shape.tri,'banks',texture);
+    fprintf('Mesh refinement took %f seconds\n', toc); 
 end
+
 picture     = imread(image);
 color = uint8(zeros(length(shape.pos),3));
 for i=1:length(shape.pos)
-    color(i,1:3) = picture(floor((1-texture(i,2))*length(picture)),1+floor(texture(i,1)*length(picture)),1:3);
+    color(i,1:3) = picture(round((1-texture(i,2))*length(picture)),1+floor(texture(i,1)*length(picture)),1:3);
 end
 
 shape = ft_convert_units(shape, unit);

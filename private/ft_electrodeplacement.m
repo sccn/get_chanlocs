@@ -154,49 +154,23 @@ function [selected] = ft_select_point3d(bnd, chanLabels, varargin)
 marker      = ft_getopt(varargin, 'marker', []);
 markersize  = ft_getopt(varargin, 'markersize', 10);
 markercolor = ft_getopt(varargin, 'markercolor', 'k');
-
-% get the object handles
-h = get(gca, 'children');
-
-% select the correct objects
-iscorrect = false(size(h));
-for i=1:length(h)
-    pos = get(h(i),'vertices');
-    tri = get(h(i),'faces');
-    if ~isempty(bnd) && isequal(bnd.pos, pos) && isequal(bnd.tri, tri)
-        % it is the same object that the user has plotted before
-        iscorrect(i) = true;
-    elseif isempty(bnd)
-        % assume that it is the same object that the user has plotted before
-        iscorrect(i) = true;
-    end
-end
-h = h(iscorrect);
-
-if isempty(h) && ~isempty(bnd)
-    figure
-    ft_plot_mesh(bnd);
-    camlight
-    selected = ft_select_point3d(bnd, varargin{:});
-    return
-end
-
-selected = zeros(0,3);
-suptitle(sprintf('Select %s', char(chanLabels(1))))
-
-% everything is added to the current figure
-holdflag = ishold;
-if ~holdflag
-    hold on
-end
+modelAxes = get(gcf, 'Children');
+set(modelAxes,'NextPlot','add');
 
 done = false;
 az = 0;
 el = 0;
 view(az,el);
+
+selected = zeros(0,3);
+supAxes = axes('pos',[0 0.95 1 1],'visible','off');
+supText = text(supAxes,.5,0,['Select ' char(chanLabels(1))],...
+    'FontSize',get(gcf,'defaultaxesfontsize')+4,...
+    'horizontalalignment','center');
+
 while ~done
     k = waitforbuttonpress;
-    p = select3d(h);
+    p = select3d(modelAxes);
     if k == 1 %checks if waitforbuttonpress was a key
         key = get(gcf,'CurrentCharacter'); % which key was pressed (if any)?
         if strcmp(key, 'q')
@@ -218,29 +192,26 @@ while ~done
                 fprintf('Removed %s at [%9.4f %9.4f %9.4f]\n', char(chanLabels(size(selected,1))),...
                     selected(end,1), selected(end,2), selected(end,3));
                 selected = selected(1:end-1,:);
-                suptitle(sprintf('Select %s', char(chanLabels(size(selected,1)+1))))
+                set(supText,'String', ['Select ', char(chanLabels(size(selected,1)+1))]);
             end
         elseif strcmp(key,'+')
-            zoom(1.1)
+            zoom(modelAxes, 1.1)
         elseif strcmp(key,'-')
-            zoom(0.9)
+            zoom(modelAxes, 0.9)
         elseif strcmp(key,'w')
             el = el-6;
-            view(az,el)
+            view(modelAxes, az,el)
         elseif strcmp(key,'a')
             az = az+6;
-            view(az,el)
+            view(modelAxes, az,el)
         elseif strcmp(key,'s')
             el = el+6;
-            view(az,el)
+            view(modelAxes, az,el)
         elseif strcmp(key,'d')
             az = az-6;
-            view(az,el)
+            view(modelAxes, az,el)
         end
-        
-    else
-        % a new point was selected
-        
+    else        % a new point was selected
         if size(selected,1)+1>size(chanLabels,1)
             fprintf(['Number of points selected exceed number of channels!\n'...
                 'Last selected point was not added.\n'...
@@ -249,7 +220,7 @@ while ~done
             fprintf('Click not registered. Make sure points selected are within boundaries of 3D Model\n')
         elseif size(selected,1)+1==size(chanLabels,1)
             selected(end+1,:) = p;
-			suptitle(sprintf('Press "q" to advance'))
+            set(supText,'String', 'Press "q" to advance');
             if strcmp(chanLabels{1},'NAS')
                 fprintf('Selected %s at [%9.4f %9.4f %9.4f] (%d/%d) fiducials \n', char(chanLabels(size(selected,1))),...
                     selected(end,1), selected(end,2), selected(end,3), size(selected,1),size(chanLabels,1));
@@ -263,7 +234,7 @@ while ~done
             end
         else
             selected(end+1,:) = p;
-            suptitle(sprintf('Select %s', char(chanLabels(size(selected,1)+1))))
+            set(supText,'String', ['Select ', char(chanLabels(size(selected,1)+1))]);
             if strcmp(chanLabels{1},'NAS')
                  fprintf('Selected %s at [%9.4f %9.4f %9.4f] (%d/%d) fiducials \n', char(chanLabels(size(selected,1))),...
                     selected(end,1), selected(end,2), selected(end,3), size(selected,1),size(chanLabels,1));
@@ -277,10 +248,6 @@ while ~done
             set(hs, 'MarkerSize', markersize);
         end
     end
-end
-
-if ~holdflag
-    hold off
 end
 
 function [pout, vout, viout, facevout, faceiout]  = select3d(obj)
