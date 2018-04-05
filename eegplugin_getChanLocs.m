@@ -29,7 +29,7 @@
 
 function vers = eegplugin_getChanLocs(fig, trystrs, catchstrs)
 
-vers = 'getChanLocs 1.50';
+vers = 'getChanLocs 1.60';
 if nargin < 3
     error('eegplugin_getChanLocs requires 3 arguments');
 end;

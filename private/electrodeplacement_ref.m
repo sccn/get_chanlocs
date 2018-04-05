@@ -97,7 +97,7 @@ ft_plot_mesh(headshape);
 
 % plot the reference model on new axis and link the views
 axes('Position', [0.6 0.5 0.5 0.5]); axis off
-ft_plot_mesh(cfg.templateMontage)
+ft_plot_mesh(cfg.montageTemplate)
 
 modelFig = findobj( 'Type', 'Figure', 'Name', 'getChanLocs' );
 figAxes = get(modelFig,'Children');

@@ -15,16 +15,16 @@
 %   'chanLabels'      - (Default = {EEG.chanlocs(1,:).labels}') Label names
 %                        for EEG channels (and misc sensors) to be localized.
 %                        Default channel label list is extracted from EEG recording. 
-%   'createTemplateMontage' - (Default = 0) Create and save rotated model with
+%   'createMontageTemplate' - (Default = 0) Create and save rotated model with
 %                        electrode label-location pairings to use as reference
 %   'deleteTxtOutput' - (Default = 1) Delete text file containing electrode labels and 
 %                        locations after importing to EEGLAB .set file.
 %   'moveElecInwards' - (Default = 7.50) Move electrode locations towards (in mm)
 %                        scalp to adjust for cap and electrode well thickness.
 %                        Negative numbers result in an outward move, away from the scalp.
-%   'templatePath'    - (Default = [objPath, filesep, '..']) Full filepath to folder 
-%                        to load template montage .mat file
-%   'templateSaveName'- (Default = [templatePath, filesep, 'templateMontage.mat'] filename (including path)
+%   'templatePath'    - (Default = [objPath, filesep, '..']) Full filepath to montage template
+%                       .mat file, or default to pop-up dialogue after searching model parent directory
+%   'templateSaveName'- (Default = [templatePath, filesep, 'montageTemplate.mat'] filename (including path)
 %                        of output file to save rotated model and locations to be used as template
 %   'saveName'        - (Default = [objPath, filesep, 'getChanLocs.txt']) Full filename 
 %                       (including path) of output file to save electrode labels
@@ -41,6 +41,7 @@
 %   Institute for Neural Computation, UC San Diego
 %
 % History: 
+%   05 Apr 2018 v1.60 CL. reference now 'montage template', new modal sub-GUI
 %   15 Mar 2018 v1.50 CL. new read_obj. reference now called template montage
 %   21 Feb 2018 v1.41 CL. Improved reference model selection and creation
 %   07 Feb 2018 v1.40 CL. Now supports reference model
@@ -87,16 +88,17 @@ if ~isfield(opts,'anonymizeFace')
     opts.anonymizeFace = 0; end
 if ~isfield(opts,'chanLabels')
     opts.chanLabels = {EEG.chanlocs(1,:).labels}'; end
-if ~isfield(opts,'createTemplateMontage')
-    opts.createTemplateMontage = 0; end
+if ~isfield(opts,'createMontageTemplate')
+    opts.createMontageTemplate = 0; end
 if ~isfield(opts,'deleteTxtOutput')
     opts.deleteTxtOutput = 1; end
 if ~isfield(opts,'moveElecInwards')
     opts.moveElecInwards = 7.50; end
-if ~isfield(opts,'templatePath')
-    opts.templatePath = [objPath, filesep, '..']; clear('tmp'); end
+if ~isfield(opts,'templatePath') %#ok<ALIGN>
+    opts.templatePath = [objPath, filesep, '..'];
+    opts.templateSearch = 1;  end
 if ~isfield(opts,'templateSaveName') %#ok<ALIGN>
-    opts.templateSaveName = [opts.templatePath, filesep, 'templateMontage.mat'];
+    opts.templateSaveName = [opts.templatePath, filesep, 'motnageTemplate.mat'];
 elseif isempty(regexp(opts.templateSaveName, '.mat','once'))
     fprintf('Appending file extension ".mat" to templateSaveName\n');
     opts.templateSaveName = [opts.templateSaveName,'.txt']; end
@@ -134,36 +136,36 @@ cfg.fiducial.rpa    = fiducials.elecpos(3,:); %position of RHT
 head_surface = ft_meshrealign(cfg,head_surface);
 
 %% load reference template montage
-refMats = ls([opts.templatePath, filesep, '*.mat']);
-if isempty(refMats)
-    choice = questdlg('No template montage .mat found. Create new template?', ...
-	'Template Montage', 'Yes (recommended)','No', 'Yes (recommended)');
-    switch choice
-        case 'Yes (recommended)'
-            opts.createTemplateMontage = 1;
-        case 'No'
-            opts.createTemplateMontage = 0;
+
+if ~isfield(opts, 'templateSearch')
+    load(opts.templatePath);
+else
+    refMats = ls([opts.templatePath, filesep, '*.mat']);
+    if isempty(refMats)
+        choice = noTemplate;
+        switch choice
+            case 'Yes (recommended)'
+                opts.createMontageTemplate = 1;
+            case 'No'
+                opts.createMontageTemplate = 0;
+        end
+    elseif size(refMats,1) == 1
+        choice = oneTemplate;
+        switch choice
+            case 'Load saved template'
+                fprintf('Loading montage template from %s...\n', [opts.templatePath, filesep, refMats]);
+                load([opts.templatePath, filesep, refMats])
+            case 'Create new template'
+                opts.createMontageTemplate = 1;
+        end
+    elseif size(refMats,1) > 1
+        choice = multiTemplate(refMats);
+        if strcmp(choice,'Create new template')
+            opts.createMontageTemplate = 1;
+        else
+            load([opts.templatePath, filesep, choice]);
+        end
     end
-elseif size(refMats,1) == 1
-    choice = questdlg('Found one template .mat file. Load saved or create new templateMontage?', ...
-	'Template Montage', 'Load saved template','Create new template', 'Load saved template');
-switch choice
-    case 'Load saved template'
-        fprintf('Loading template montage from %s...\n', [opts.templatePath, filesep, refMats]);
-        load([opts.templatePath, filesep, refMats])
-    case 'Create new template'
-        opts.createTemplateMontage = 1;
-end
-elseif size(refMats,1) > 1
-    fprintf(['Found multiple .mat files within template montage path!\n'...
-        'File names are listed, please select from drop down list\n'])
-    choice = listdlg('Name', 'Template Montage', 'PromptString','Select option:',...
-                'SelectionMode','single', 'ListString', ['Create new template'; string(refMats)]);
-            if choice == 1 
-                opts.createTemplateMontage = 1;
-            else
-                load([opts.templatePath, filesep, refMats(choice-1,:)]);
-            end
 end
 clear refMats choice
 
@@ -172,12 +174,12 @@ cfg = [];
 cfg.method = 'headshape';
 cfg.channel = opts.chanLabels;
 
-if opts.createTemplateMontage == 1
-    fprintf('Select electrode locations for the new template montage...\n')
+if opts.createMontageTemplate == 1
+    fprintf('Select electrode locations for the new montage template...\n')
     elec = ft_electrodeplacement(cfg,head_surface);
 else
 try
-    cfg.templateMontage = templateMontage; cfg.refLocs = templateMontage.refLocs; %#ok<NODEF>
+    cfg.montageTemplate = montageTemplate; cfg.refLocs = montageTemplate.refLocs; %#ok<NODEF>
     fprintf('Select electrode locations...\n')
     elec = electrodeplacement_ref(cfg,head_surface);
 catch e
@@ -204,11 +206,11 @@ if opts.moveElecInwards
     end
 end
 
-%% save templateMontage.mat
-if opts.createTemplateMontage
+%% save montageTemplate.mat
+if opts.createMontageTemplate
     fprintf('Saving reference .mat to %s\n', opts.templateSaveName)
-    templateMontage = head_surface; templateMontage.refLocs = elec.elecpos(:,:);
-    save(opts.templateSaveName, 'templateMontage');
+    montageTemplate = head_surface; montageTemplate.refLocs = elec.elecpos(:,:);
+    save(opts.templateSaveName, 'montageTemplate');
 end
 
 %% format (labels','X','Y','Z') and save ascii for import. delete file afterwards if requested
