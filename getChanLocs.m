@@ -98,7 +98,7 @@ if ~isfield(opts,'templatePath') %#ok<ALIGN>
     opts.templatePath = [objPath, filesep, '..'];
     opts.templateSearch = 1;  end
 if ~isfield(opts,'templateSaveName') %#ok<ALIGN>
-    opts.templateSaveName = [opts.templatePath, filesep, 'motnageTemplate.mat'];
+    opts.templateSaveName = [opts.templatePath, filesep, 'montageTemplate.mat'];
 elseif isempty(regexp(opts.templateSaveName, '.mat','once'))
     fprintf('Appending file extension ".mat" to templateSaveName\n');
     opts.templateSaveName = [opts.templateSaveName,'.txt']; end
