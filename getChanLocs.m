@@ -233,7 +233,7 @@ if opts.deleteTxtOutput == 1
     fprintf('Deleting .txt file with electrode locations...\n')
     delete(opts.saveName)
 end
-fprintf('Electrode Localization by 3D Object Finished!\n')
+fprintf('Electrode localization by getChanLocs finished!\n')
 end
 
 function anonFace(objJpg) %anonymize face by replacing skintones with grey
