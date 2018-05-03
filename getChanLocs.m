@@ -1,4 +1,5 @@
-% getChanLocs(): Populate EEG.chanlocs using Wavefront .obj created by 3D-scanners (e.g. structure.io).
+% getChanLocs(): Populate EEG.chanlocs using Wavefront .obj created by 3D-scanners.
+% Currently tested to use models captured by the itSeez3D app and Structure scanner.
 % FieldTrip toolbox functions are adapted to localize electrodes. See the original process at 
 % http://www.fieldtriptoolbox.org/tutorial/electrode
 %
