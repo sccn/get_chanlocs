@@ -144,7 +144,7 @@ function browseInput_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 file = uigetdir(pwd);
 set(handles.objPath,'String', file)
-set(handles.saveName,'String',strcat(file,filesep,'getChanLocs.txt'))
+set(handles.saveName,'String',strcat(file,filesep,'getchanlocs.txt'))
 
 
 % --- Executes on button press in browseOutput.
@@ -184,7 +184,7 @@ function help_Callback(hObject, eventdata, handles)
 % hObject    handle to help (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-help getChanLocs
+help getchanlocs
 
 % --- Executes on button press in ok.
 function ok_Callback(hObject, eventdata, handles)
@@ -199,7 +199,7 @@ moveElecInwards = str2double(get(handles.moveElecInwards,'String'));
 close
 
 EEG  = evalin('base', 'EEG');
-EEG = getChanLocs(EEG, objPath, 'saveName', saveName, 'anonymizeFace', anonymizeFace,...
+EEG = getchanlocs(EEG, objPath, 'saveName', saveName, 'anonymizeFace', anonymizeFace,...
     'deleteTxtOutput', deleteTxtOutput, 'moveElecInwards', moveElecInwards);
 assignin('base','EEG',EEG);
 

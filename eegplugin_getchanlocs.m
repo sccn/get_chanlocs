@@ -1,4 +1,4 @@
-% eegplugin_getChanLocs()
+% eegplugin_getchanlocs()
 %
 % Inputs:
 %   fig        - [integer] eeglab figure.
@@ -27,14 +27,14 @@
 % along with this program; if not, write to the Free Software
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1.07  USA
 
-function vers = eegplugin_getChanLocs(fig, trystrs, catchstrs)
+function vers = eegplugin_getchanlocs(fig, trystrs, catchstrs)
 
-vers = 'getChanLocs 1.60';
+vers = 'getchanlocs 1.60';
 if nargin < 3
-    error('eegplugin_getChanLocs requires 3 arguments');
+    error('eegplugin_getchanlocs requires 3 arguments');
 end;
 
 % create menu
 toolsMenu = findobj(fig, 'tag', 'tools');
 uimenu(toolsMenu, 'label', 'Locate electrodes in a 3D head image',...
-    'callback', 'gui_getChanLocs','separator','on');
+    'callback', 'gui_getchanlocs','separator','on');

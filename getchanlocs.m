@@ -1,10 +1,10 @@
-% getChanLocs(): Populate EEG.chanlocs using Wavefront .obj created by 3D-scanners.
+% getchanlocs(): Populate EEG.chanlocs using Wavefront .obj created by 3D-scanners.
 % Currently tested to use models captured by the itSeez3D app and Structure scanner.
 % FieldTrip toolbox functions are adapted to localize electrodes. See the original process at 
 % http://www.fieldtriptoolbox.org/tutorial/electrode
 %
 % Usage:
-%   >>EEG = getChanLocs(EEG, objPath, 'key1', value1, ..., 'keyN', valueN);
+%   >>EEG = getchanlocs(EEG, objPath, 'key1', value1, ..., 'keyN', valueN);
 %
 % Inputs:
 %   EEG     - EEGLAB EEG structure
@@ -27,7 +27,7 @@
 %                       .mat file, or default to pop-up dialogue after searching model parent directory
 %   'templateSaveName'- (Default = [templatePath, filesep, 'montageTemplate.mat'] filename (including path)
 %                        of output file to save rotated model and locations to be used as template
-%   'saveName'        - (Default = [objPath, filesep, 'getChanLocs.txt']) Full filename 
+%   'saveName'        - (Default = [objPath, filesep, 'getchanlocs.txt']) Full filename 
 %                       (including path) of output file to save electrode labels
 %                        and locations. Imported into EEGLAB using readlocs(). Can be set to 
 %                        automatically delete after import (see Optional Inputs: deleteTxtOutput)
@@ -69,13 +69,13 @@
 % along with this program; if not, write to the Free Software
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1.07  USA
 
-function EEG = getChanLocs(EEG, objPath, varargin)
+function EEG = getchanlocs(EEG, objPath, varargin)
 %% check 3D model input path for [.obj, .jpg,.mtl]
 if nargin < 1
-	help getChanLocs;
+	help getchanlocs;
 	return;
 elseif mod(nargin,2) == 1
-    help getChanLocs;
+    help getchanlocs;
     error('Please check input format.')
 elseif ~(size(dir([objPath filesep '*.obj']),1) == 1&&...
          size(dir([objPath filesep '*.jpg']),1) == 1&&...
@@ -104,7 +104,7 @@ elseif isempty(regexp(opts.templateSaveName, '.mat','once'))
     fprintf('Appending file extension ".mat" to templateSaveName\n');
     opts.templateSaveName = [opts.templateSaveName,'.txt']; end
 if ~isfield(opts,'saveName') %#ok<ALIGN>
-    opts.saveName = [objPath, filesep, 'getChanLocs.txt'];
+    opts.saveName = [objPath, filesep, 'getchanlocs.txt'];
 elseif isempty(regexp(opts.saveName, '.txt','once'))
     fprintf('Appending file extension ".txt" to saveName\n');
     opts.saveName = [opts.saveName,'.txt']; end
@@ -234,7 +234,7 @@ if opts.deleteTxtOutput == 1
     fprintf('Deleting .txt file with electrode locations...\n')
     delete(opts.saveName)
 end
-fprintf('Electrode localization by getChanLocs finished!\n')
+fprintf('Electrode localization by getchanlocs finished!\n')
 end
 
 function anonFace(objJpg) %anonymize face by replacing skintones with grey
