@@ -143,7 +143,7 @@ if ~isfield(opts, 'templateSearch')
 else
     refMats = ls([opts.templatePath, filesep, '*.mat']);
     if isempty(refMats)
-        choice = noTemplate;
+        choice = no_template;
         switch choice
             case 'Yes (recommended)'
                 opts.createMontageTemplate = 1;
@@ -151,7 +151,7 @@ else
                 opts.createMontageTemplate = 0;
         end
     elseif size(refMats,1) == 1
-        choice = oneTemplate;
+        choice = one_template;
         switch choice
             case 'Load saved template'
                 fprintf('Loading montage template from %s...\n', [opts.templatePath, filesep, refMats]);
@@ -160,7 +160,7 @@ else
                 opts.createMontageTemplate = 1;
         end
     elseif size(refMats,1) > 1
-        choice = multiTemplate(refMats);
+        choice = multi_template(refMats);
         if strcmp(choice,'Create new template')
             opts.createMontageTemplate = 1;
         else

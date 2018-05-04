@@ -89,7 +89,7 @@ disp('Press "+/-" to zoom in/out');
 disp('Press "w/a/s/d" to rotate');
 disp('Press "q" to quit and advance when done');
 % open a figure
-figure('Name','getChanLocs')
+figure('Name','getchanlocs')
 
 % plot the faces of the 2D or 3D triangulation
 headshape = fixpos(varargin{1});
