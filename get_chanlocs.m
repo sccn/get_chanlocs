@@ -1,10 +1,10 @@
-% getchanlocs(): Populate EEG.chanlocs using Wavefront .obj created by 3D-scanners.
+% get_chanlocs(): Populate EEG.chanlocs using Wavefront .obj created by 3D-scanners.
 % Currently tested to use models captured by the itSeez3D app and Structure scanner.
 % FieldTrip toolbox functions are adapted to localize electrodes. See the original process at 
 % http://www.fieldtriptoolbox.org/tutorial/electrode
 %
 % Usage:
-%   >>EEG = getchanlocs(EEG, objPath, 'key1', value1, ..., 'keyN', valueN);
+%   >>EEG = get_chanlocs(EEG, objPath, 'key1', value1, ..., 'keyN', valueN);
 %
 % Inputs:
 %   EEG     - EEGLAB EEG structure
@@ -27,7 +27,7 @@
 %                       .mat file, or default to pop-up dialogue after searching model parent directory
 %   'templateSaveName'- (Default = [templatePath, filesep, 'montageTemplate.mat'] filename (including path)
 %                        of output file to save rotated model and locations to be used as template
-%   'saveName'        - (Default = [objPath, filesep, 'getchanlocs.txt']) Full filename 
+%   'saveName'        - (Default = [objPath, filesep, 'get_chanlocs.txt']) Full filename 
 %                       (including path) of output file to save electrode labels
 %                        and locations. Imported into EEGLAB using readlocs(). Can be set to 
 %                        automatically delete after import (see Optional Inputs: deleteTxtOutput)
@@ -42,6 +42,8 @@
 %   Institute for Neural Computation, UC San Diego
 %
 % History: 
+%   09 May 2018 v1.70 CL. renamed to get_chanlocs, pushed to Extension Manager
+%                         tested on OS X, ls -> dir for compatibility 
 %   05 Apr 2018 v1.60 CL. reference now 'montage template', new modal sub-GUI
 %   15 Mar 2018 v1.50 CL. new read_obj. reference now called template montage
 %   21 Feb 2018 v1.41 CL. Improved reference model selection and creation
@@ -69,13 +71,13 @@
 % along with this program; if not, write to the Free Software
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1.07  USA
 
-function EEG = getchanlocs(EEG, objPath, varargin)
+function EEG = get_chanlocs(EEG, objPath, varargin)
 %% check 3D model input path for [.obj, .jpg,.mtl]
 if nargin < 1
-	help getchanlocs;
+	help get_chanlocs;
 	return;
 elseif mod(nargin,2) == 1
-    help getchanlocs;
+    help get_chanlocs;
     error('Please check input format.')
 elseif ~(size(dir([objPath filesep '*.obj']),1) == 1&&...
          size(dir([objPath filesep '*.jpg']),1) == 1&&...
@@ -104,7 +106,7 @@ elseif isempty(regexp(opts.templateSaveName, '.mat','once'))
     fprintf('Appending file extension ".mat" to templateSaveName\n');
     opts.templateSaveName = [opts.templateSaveName,'.txt']; end
 if ~isfield(opts,'saveName') %#ok<ALIGN>
-    opts.saveName = [objPath, filesep, 'getchanlocs.txt'];
+    opts.saveName = [objPath, filesep, 'get_chanlocs.txt'];
 elseif isempty(regexp(opts.saveName, '.txt','once'))
     fprintf('Appending file extension ".txt" to saveName\n');
     opts.saveName = [opts.saveName,'.txt']; end
@@ -141,7 +143,7 @@ head_surface = ft_meshrealign(cfg,head_surface);
 if ~isfield(opts, 'templateSearch')
     load(opts.templatePath);
 else
-    refMats = ls([opts.templatePath, filesep, '*.mat']);
+    refMats = dir([opts.templatePath, filesep, '*.mat']); 
     if isempty(refMats)
         choice = no_template;
         switch choice
@@ -154,8 +156,8 @@ else
         choice = one_template;
         switch choice
             case 'Load saved template'
-                fprintf('Loading montage template from %s...\n', [opts.templatePath, filesep, refMats]);
-                load([opts.templatePath, filesep, refMats])
+                fprintf('Loading montage template from %s...\n', [opts.templatePath, filesep, refMats.name]);
+                load([opts.templatePath, filesep, refMats.name])
             case 'Create new template'
                 opts.createMontageTemplate = 1;
         end
@@ -234,7 +236,7 @@ if opts.deleteTxtOutput == 1
     fprintf('Deleting .txt file with electrode locations...\n')
     delete(opts.saveName)
 end
-fprintf('Electrode localization by getchanlocs finished!\n')
+fprintf('Electrode localization by get_chanlocs finished!\n')
 end
 
 function anonFace(objJpg) %anonymize face by replacing skintones with grey

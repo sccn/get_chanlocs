@@ -103,7 +103,8 @@ set(hObject, 'Units', OldUnits);
 
 % Make the GUI modal
 set(handles.figure1,'WindowStyle','modal')
-set(handles.listbox1, 'String', evalin('base','refMats'));
+refMatList = string({varargin{1}.name}); 
+set(handles.listbox1, 'String', refMatList);
 
 % UIWAIT makes multi_template wait for user response (see UIRESUME)
 uiwait(handles.figure1);

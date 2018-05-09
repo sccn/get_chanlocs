@@ -29,7 +29,7 @@
 
 function vers = eegplugin_getchanlocs(fig, trystrs, catchstrs)
 
-vers = 'getchanlocs 1.60';
+vers = 'get_chanlocs 1.70';
 if nargin < 3
     error('eegplugin_getchanlocs requires 3 arguments');
 end;

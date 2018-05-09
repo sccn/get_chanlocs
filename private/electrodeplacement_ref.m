@@ -99,7 +99,7 @@ ft_plot_mesh(headshape);
 axes('Position', [0.6 0.5 0.5 0.5]); axis off
 ft_plot_mesh(cfg.montageTemplate)
 
-modelFig = findobj( 'Type', 'Figure', 'Name', 'getChanLocs' );
+modelFig = findobj( 'Type', 'Figure', 'Name', 'getchanlocs' );
 figAxes = get(modelFig,'Children');
 Link = linkprop([figAxes(1), figAxes(2)], 'view');
 setappdata(gcf, 'viewLink',Link);
@@ -173,6 +173,7 @@ az = 0; el = 0;
 view(az,el);
 
 [sphereX, sphereY, sphereZ] = sphere;
+
 ref_hs = surf(refAxes, sphereX*10 + refLocs(size(selected,1)+1,1),...
     sphereY*10 +refLocs(size(selected,1)+1,2),...
     sphereZ*10 +refLocs(size(selected,1)+1,3));
@@ -182,6 +183,7 @@ supAxes = axes('pos',[0 0.95 1 1],'visible','off');
 supText = text(supAxes,.5,0,['Select ' char(chanLabels(1))],...
     'FontSize',get(gcf,'defaultaxesfontsize')+4,...
     'horizontalalignment','center');
+
 
 while ~done
     k = waitforbuttonpress;
@@ -252,17 +254,16 @@ while ~done
             set(supText,'String', ['Select ', char(chanLabels(size(selected,1)+1))]);
             fprintf('Selected %s at [%9.4f %9.4f %9.4f] (%d/%d) channels \n', char(chanLabels(size(selected,1))),...
                 selected(end,1), selected(end,2), selected(end,3), size(selected,1),size(chanLabels,1));
-        end
-        if ~isempty(marker)&&~isempty(p)
-            hs = plot3(modelAxes, selected(end,1), selected(end,2), selected(end,3), [markercolor marker]);
-            set(hs, 'MarkerSize', markersize);
-            
-            delete(ref_hs)
-            ref_hs = surf(refAxes, sphereX*10 + refLocs(size(selected,1)+1,1),...
-                sphereY*10 +refLocs(size(selected,1)+1,2),...
-                sphereZ*10 +refLocs(size(selected,1)+1,3));
-            set(ref_hs, 'LineStyle', 'none', 'FaceColor',[1 0 0], 'FaceAlpha', 0.5);
-            
+            if ~isempty(marker)&&~isempty(p)
+                hs = plot3(modelAxes, selected(end,1), selected(end,2), selected(end,3), [markercolor marker]);
+                set(hs, 'MarkerSize', markersize);
+                
+                delete(ref_hs)
+                ref_hs = surf(refAxes, sphereX*10 + refLocs(size(selected,1)+1,1),...
+                    sphereY*10 +refLocs(size(selected,1)+1,2),...
+                    sphereZ*10 +refLocs(size(selected,1)+1,3));
+                set(ref_hs, 'LineStyle', 'none', 'FaceColor',[1 0 0], 'FaceAlpha', 0.5);
+            end
         end
     end
 end
