@@ -42,12 +42,7 @@
 %   Institute for Neural Computation, UC San Diego
 %
 % History: 
-%   09 May 2018 v1.70 CL. renamed to get_chanlocs, pushed to Extension Manager
-%                         tested on OS X, ls -> dir for compatibility 
-%   05 Apr 2018 v1.60 CL. reference now 'montage template', new modal sub-GUI
-%   15 Mar 2018 v1.50 CL. new read_obj. reference now called template montage
-%   21 Feb 2018 v1.41 CL. Improved reference model selection and creation
-%   07 Feb 2018 v1.40 CL. Now supports reference model
+%   01 Feb 2018 v1.35 CL. Now supports reference model. Created repository (https://github.com/cll008/get_chanlocs)
 %   26 Jan 2018 v1.32 CL. try/catch on moveElecInwards for now so that process continues and locations are saved.
 %   25 Jan 2018 v1.31 CL. Addressing issues with mex files when solid_angle.m (for moveElecInwards) fails. 
 %   25 Jan 2018 v1.30 CL. Version check for string() when writing text file.
@@ -90,7 +85,7 @@ opts = cell2struct(varargin(2:2:end),varargin(1:2:end),2);
 if ~isfield(opts,'anonymizeFace')
     opts.anonymizeFace = 0; end
 if ~isfield(opts,'chanLabels')
-    opts.chanLabels = {EEG.chanlocs(1,:).labels}'; end
+    opts.chanLabels = {EEG.chanlocs(:).labels}'; end
 if ~isfield(opts,'createMontageTemplate')
     opts.createMontageTemplate = 0; end
 if ~isfield(opts,'deleteTxtOutput')
@@ -147,7 +142,7 @@ else
     if isempty(refMats)
         choice = no_template;
         switch choice
-            case 'Yes (recommended)'
+            case 'Create new template'
                 opts.createMontageTemplate = 1;
             case 'No'
                 opts.createMontageTemplate = 0;
