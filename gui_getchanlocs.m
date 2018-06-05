@@ -58,6 +58,9 @@ handles.output = hObject;
 % Update handles structure
 guidata(hObject, handles);
 
+% check plug-in version
+check_plugin_vers('get_chanlocs',4,1);
+
 % UIWAIT makes gui_getchanlocs wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
 
