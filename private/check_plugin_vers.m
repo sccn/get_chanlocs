@@ -6,7 +6,7 @@
 %
 % Inputs:
 %       pluginName  - (string) name of plug-in to check
-%       versNumChar - (int, default 4) number of characters used to denote version at 
+%       versNumChar - (int) number of characters used to denote version at 
 %                     the end of the parent directory's name. (e.g. 
 %                     versNumChar = 4 for ../pluginName2.38/pluginName)
 %       verbose     - (boolean, default 1) prints output to Command Window
