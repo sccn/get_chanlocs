@@ -236,13 +236,12 @@ end
 
 function anonFace(objJpg) %anonymize face by replacing skintones with grey
 ogI = imread(objJpg);
-% whiten all black points for processing
-I = ogI; I(I==0) = 255;
+I = ogI; 
 % extract rgb as double
 red  = double(I(:,:,1)); green = double(I(:,:,2)); blue = double(I(:,:,3));
 % normalize by red and mask skintone values
 greenR = green./red; blueR = blue./red;
-gMask = (greenR>0.5 & greenR<0.85); uMask = (blueR>0.3 &  blueR<0.65);
+gMask = (greenR>0.35 & greenR<0.85); uMask = (blueR>0.1 &  blueR<0.65);
 mask = gMask & uMask;
 ogI(mask(:,:,[1,1,1])) = 128;
 % Overwrite Image
