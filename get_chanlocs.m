@@ -20,6 +20,11 @@
 %                        electrode label-location pairings to use as reference
 %   'deleteTxtOutput' - (Default = 1) Delete text file containing electrode labels and 
 %                        locations after importing to EEGLAB .set file.
+%   'grayTextures'    - (Default = 0) Wrap gray textures around head model
+%                        instead of textures prescribed in a separate .jpg
+%                        file. Automatically set to 1 when no .jpg is found.
+%			 Use this option if textures are distracting, glitched, or
+%			 wrapped incorrectly around the head model.
 %   'moveElecInwards' - (Default = 7.50) Move electrode locations towards (in mm)
 %                        scalp to adjust for cap and electrode well thickness.
 %                        Negative numbers result in an outward move, away from the scalp.
@@ -75,9 +80,8 @@ elseif mod(nargin,2) == 1
     help get_chanlocs;
     error('Please check input format.')
 elseif ~(size(dir([objPath filesep '*.obj']),1) == 1&&...
-         size(dir([objPath filesep '*.jpg']),1) == 1&&...
          size(dir([objPath filesep '*.mtl']),1) == 1)
-    error('Please input path to folder containing one set of [.obj, .jpg, .mtl] files.')
+    error('Please input path to folder containing 1 set of [.obj and .mtl] files.')
 end
 
 %% handle optional inputs
@@ -90,6 +94,8 @@ if ~isfield(opts,'createMontageTemplate')
     opts.createMontageTemplate = 0; end
 if ~isfield(opts,'deleteTxtOutput')
     opts.deleteTxtOutput = 1; end
+if ~isfield(opts, 'grayTextures')
+    opts.grayTextures = 0; end
 if ~isfield(opts,'moveElecInwards')
     opts.moveElecInwards = 7.50; end
 if ~isfield(opts,'templatePath') %#ok<ALIGN>
@@ -114,7 +120,8 @@ end
 
 %% load model
 fprintf('Loading 3D model in mm scale...\n')
-head_surface = ft_read_headshape([objPath, filesep, getfield(dir([objPath filesep '*.obj']),'name')], 'unit','mm');
+head_surface = ft_read_headshape([objPath, filesep, getfield(dir([objPath filesep '*.obj']),'name')],...
+    'unit', 'mm', 'grayTextures', opts.grayTextures);
 
 %% locate fiducials and align
 fprintf('Select (in order) Nasion, Left Helix/Tragus Intersection, and Right Helix/Tragus Intersection...\n')

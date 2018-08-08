@@ -47,11 +47,19 @@ function [shape] = ft_read_headshape(filename, varargin)
 %    You should have received a copy of the GNU General Public License
 %    along with FieldTrip. If not, see <http://www.gnu.org/licenses/>.
 %
-unit           = ft_getopt(varargin, 'unit');
+unit         = ft_getopt(varargin, 'unit');
+grayTextures = ft_getopt(varargin, 'grayTextures');
 
-% checks if there exists a .jpg file of 'filename'
 pathstr = fileparts(filename);
-image   = fullfile(pathstr, getfield(dir([pathstr filesep '*.jpg']),'name'));
+
+% checks if there exists a .jpg file or if grayTexture override
+if grayTextures
+elseif isempty(dir([pathstr filesep '*.jpg']))
+    warning('No .jpg texture file found! Proceeding with gray textures.')
+    grayTextures = 1;
+else 
+    image   = fullfile(pathstr, getfield(dir([pathstr filesep '*.jpg']),'name'));
+end
 
 % Implemented for structure.io Scanner and itSeez3D .obj thus far
 [shape.pos, shape.tri, texture, textureIdx] = read_obj(filename);
@@ -78,10 +86,14 @@ if length(shape.tri) < 200000
     fprintf('Mesh refinement took %f seconds\n', toc); 
 end
 
-picture     = imread(image);
-color = uint8(zeros(length(shape.pos),3));
-for i=1:length(shape.pos)
-    color(i,1:3) = picture(round((1-texture(i,2))*length(picture)),1+floor(texture(i,1)*length(picture)),1:3);
+if grayTextures
+    color = 128*uint8(ones(length(shape.pos),3));
+else
+    picture     = imread(image);
+    color = uint8(zeros(length(shape.pos),3));
+    for i=1:length(shape.pos)
+        color(i,1:3) = picture(round((1-texture(i,2))*length(picture)),1+floor(texture(i,1)*length(picture)),1:3);
+    end
 end
 
 shape = ft_convert_units(shape, unit);
