@@ -59,7 +59,9 @@ handles.output = hObject;
 guidata(hObject, handles);
 
 % check plug-in version
-check_plugin_vers('get_chanlocs',4,1);
+try
+	check_plugin_vers('get_chanlocs',4,1);
+end
 
 % UIWAIT makes gui_getchanlocs wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
