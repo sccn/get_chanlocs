@@ -60,7 +60,7 @@ guidata(hObject, handles);
 
 % check plug-in version
 try
-	check_plugin_vers('get_chanlocs',4,1);
+    check_plugin_vers('get_chanlocs',4,1);
 end
 
 % UIWAIT makes gui_getchanlocs wait for user response (see UIRESUME)
@@ -200,7 +200,7 @@ objPath  = get(handles.objPath,'String');
 saveName = get(handles.saveName,'String');
 anonymizeFace   = get(handles.anonymizeFace,'Value');
 deleteTxtOutput = get(handles.deleteTxtOutput,'Value');
-moveElecInwards = str2double(get(handles.moveElecInwards,'String'));
+moveElecInwards = str2num(get(handles.moveElecInwards,'String'));
 close
 
 EEG  = evalin('base', 'EEG');

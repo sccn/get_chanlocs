@@ -13,6 +13,9 @@
 % Optional Inputs (value 0 or false to turn off):
 %   'anonymizeFace'   - (Default = 0) Overwrite objPath .jpg file to replace 
 %                        skintones with grey to anonymize subject's face
+%   'autoMapElectrodes'- (Default = 1) Implement Hungarian assignment
+%                        to allow selection of channels out of order 
+%                        (see autoMapElectrodes.m)
 %   'chanLabels'      - (Default = {EEG.chanlocs(1,:).labels}') Label names
 %                        for EEG channels (and misc sensors) to be localized.
 %                        Default channel label list is extracted from EEG recording. 
@@ -23,11 +26,13 @@
 %   'grayTextures'    - (Default = 0) Wrap gray textures around head model
 %                        instead of textures prescribed in a separate .jpg
 %                        file. Automatically set to 1 when no .jpg is found.
-%			 Use this option if textures are distracting, glitched, or
-%			 wrapped incorrectly around the head model.
-%   'moveElecInwards' - (Default = 7.50) Move electrode locations towards (in mm)
-%                        scalp to adjust for cap and electrode well thickness.
+%   'moveElecInwards' - (Default = 0) Move electrode locations towards scalp
+%                        (in mm) to adjust for cap and electrode well thickness.
 %                        Negative numbers result in an outward move, away from the scalp.
+%                        Scalar input moves all electrodes by the input value; if electrodes
+%                        are offset by different heights, use a vector input with size 
+%                        [1 x numberOfChannels]. e.g. [1 2.5 1 0] will move
+%                        channels 1 and 3 by 1mm, channel 2 by 2.5mm, and leave channel 5 unmodified.
 %   'templatePath'    - (Default = [objPath, filesep, '..']) Full filepath to montage template
 %                       .mat file, or default to pop-up dialogue after searching model parent directory
 %   'templateSaveName'- (Default = [templatePath, filesep, 'montageTemplate.mat'] filename (including path)
@@ -47,7 +52,8 @@
 %   Institute for Neural Computation, UC San Diego
 %
 % History: 
-%   01 Feb 2018 v1.35 CL. Now supports reference model. Created repository (https://github.com/cll008/get_chanlocs)
+%   Github repo @ https://github.com/cll008/get_chanlocs
+%   01 Feb 2018 v1.35 CL. Now supports reference model. Created repository
 %   26 Jan 2018 v1.32 CL. try/catch on moveElecInwards for now so that process continues and locations are saved.
 %   25 Jan 2018 v1.31 CL. Addressing issues with mex files when solid_angle.m (for moveElecInwards) fails. 
 %   25 Jan 2018 v1.30 CL. Version check for string() when writing text file.
@@ -88,6 +94,8 @@ end
 opts = cell2struct(varargin(2:2:end),varargin(1:2:end),2);
 if ~isfield(opts,'anonymizeFace')
     opts.anonymizeFace = 0; end
+if ~isfield(opts,'autoMapElectrodes')
+    opts.map = 1; end
 if ~isfield(opts,'chanLabels')
     opts.chanLabels = {EEG.chanlocs(:).labels}'; end
 if ~isfield(opts,'createMontageTemplate')
@@ -97,7 +105,7 @@ if ~isfield(opts,'deleteTxtOutput')
 if ~isfield(opts, 'grayTextures')
     opts.grayTextures = 0; end
 if ~isfield(opts,'moveElecInwards')
-    opts.moveElecInwards = 7.50; end
+    opts.moveElecInwards = 0; end
 if ~isfield(opts,'templatePath') %#ok<ALIGN>
     opts.templatePath = [objPath, filesep, '..'];
     opts.templateSearch = 1;  end
@@ -111,6 +119,7 @@ if ~isfield(opts,'saveName') %#ok<ALIGN>
 elseif isempty(regexp(opts.saveName, '.txt','once'))
     fprintf('Appending file extension ".txt" to saveName\n');
     opts.saveName = [opts.saveName,'.txt']; end
+
 
 %% anonymize face
 if opts.anonymizeFace
@@ -141,7 +150,6 @@ cfg.fiducial.rpa    = fiducials.elecpos(3,:); %position of RHT
 head_surface = ft_meshrealign(cfg,head_surface);
 
 %% load reference template montage
-
 if ~isfield(opts, 'templateSearch')
     load(opts.templatePath);
 else
@@ -183,32 +191,16 @@ if opts.createMontageTemplate == 1
     fprintf('Select electrode locations for the new montage template...\n')
     elec = ft_electrodeplacement(cfg,head_surface);
 else
-try
     cfg.montageTemplate = montageTemplate; cfg.refLocs = montageTemplate.refLocs; %#ok<NODEF>
     fprintf('Select electrode locations...\n')
-    elec = electrodeplacement_ref(cfg,head_surface);
-catch e
-    fprintf(e.message)
-    fprintf('Reference model version (beta) failed, restarting electrode selection...\n')
-    fprintf('Select electrode locations...\n')
-    elec = ft_electrodeplacement(cfg,head_surface);
-end
+    elec = placeElectrodes(cfg,head_surface);
 end
 close gcf
 
-%% move electrodes in towards scalp
-if opts.moveElecInwards
-    try
-        cfg = [];
-        cfg.method = 'moveinward';
-        cfg.moveinward = opts.moveElecInwards;
-        cfg.elec = elec;
-        elec = ft_electroderealign(cfg);
-        fprintf('Moving electrode locations from cap surface in towards scalp by %2.2f mm...\n', opts.moveElecInwards)
-    catch e
-        fprintf(e.message)
-        warning('Failed to move electrodes inwards. Saving locations as is, without moving inwards...')
-    end
+%% autoMapElectrodes
+if ~opts.createMontageTemplate
+    elec.elecpos = autoMapElectrodes(montageTemplate.refLocs, elec.elecpos);
+    elec.elecpos = fixupMapping(montageTemplate.refLocs, elec.elecpos, head_surface);
 end
 
 %% save montageTemplate.mat
@@ -218,16 +210,27 @@ if opts.createMontageTemplate
     save(opts.templateSaveName, 'montageTemplate');
 end
 
+%% move electrodes in towards scalp
+try
+    cfg = [];
+    cfg.elec = elec;
+    cfg.moveinward = opts.moveElecInwards;
+    elec = moveElecInwards(cfg);
+catch e
+    fprintf(e.message)
+    warning('Failed to move electrode positions. Saving unmodified coordinates...')
+end
+
 %% format (labels','X','Y','Z') and save ascii for import. delete file afterwards if requested
 fprintf('Writing electrode locations to txt file...\n')
 
 fileID = fopen(opts.saveName,'w');
 v = ver('Matlab');
 if str2double(v.Version)>=9.1
-    fprintf(fileID,'%6s %9.4f %9.4f %9.4f\n', [string(elec.label) ; elec.elecpos(:,:)']);
+    fprintf(fileID,'%6s %9.4f %9.4f %9.4f\n', [string(opts.chanLabels') ; elec.elecpos(:,:)']);
 else
-    for ii = 1:length(elec.label)
-    fprintf(fileID, '%6s %9.4f %9.4f %9.4f\n', elec.label{ii}, elec.elecpos(ii,:));
+    for ii = 1:length(opts.chanLabels)
+    fprintf(fileID, '%6s %9.4f %9.4f %9.4f\n', opts.chanLabels{ii}, elec.elecpos(ii,:));
     end
 end
 fclose(fileID);
