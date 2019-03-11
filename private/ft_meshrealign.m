@@ -1,5 +1,7 @@
-function mesh_realigned = ft_meshrealign(cfg, mesh)
+function [transform, mesh_realigned] = ft_meshrealign(cfg, mesh)
 
+% Modified to pass transform matrix to rotate fiducials
+% 
 % FT_MESHREALIGN rotates, translates and optionally scales electrode positions. The
 % different methods are described in detail below.
 %

@@ -1,5 +1,8 @@
 % get_chanlocs(): Populate EEG.chanlocs using Wavefront .obj created by 3D-scanners.
 % Currently tested to use models captured by the itSeez3D app and Structure scanner.
+% For more information, visit https://sccn.ucsd.edu/wiki/get_chanlocs
+% The github repository is located at https://github.com/cll008/get_chanlocs
+% 
 % FieldTrip toolbox functions are adapted to localize electrodes. See the original process at 
 % http://www.fieldtriptoolbox.org/tutorial/electrode
 %
@@ -147,8 +150,9 @@ cfg.coordsys = 'bti';
 cfg.fiducial.nas    = fiducials.elecpos(1,:); %position of NAS
 cfg.fiducial.lpa    = fiducials.elecpos(2,:); %position of LHT
 cfg.fiducial.rpa    = fiducials.elecpos(3,:); %position of RHT
-head_surface = ft_meshrealign(cfg,head_surface);
-
+[h, head_surface] = ft_meshrealign(cfg,head_surface);
+rotatedFiducials = [fiducials.elecpos, ones(3,1)]*h';
+rotatedFiducials(:,end) = [];
 %% load reference template montage
 if ~isfield(opts, 'templateSearch')
     load(opts.templatePath);
@@ -222,8 +226,11 @@ catch e
 end
 
 %% format (labels','X','Y','Z') and save ascii for import. delete file afterwards if requested
-fprintf('Writing electrode locations to txt file...\n')
+% append rotated fiducials
+opts.chanLabels(end+1:end+3) = {'nas','lht','rht'};
+elec.elecpos(end+1:end+3,:) = rotatedFiducials;
 
+fprintf('Writing electrode locations to txt file...\n')
 fileID = fopen(opts.saveName,'w');
 v = ver('Matlab');
 if str2double(v.Version)>=9.1
@@ -237,6 +244,8 @@ fclose(fileID);
 
 fprintf('Importing locations with readlocs()...\n')
 EEG.chanlocs = readlocs(opts.saveName,'format',{'labels','X','Y','Z'});
+EEG = eeg_checkchanlocs(EEG);
+
 if opts.deleteTxtOutput == 1
     fprintf('Deleting .txt file with electrode locations...\n')
     delete(opts.saveName)
