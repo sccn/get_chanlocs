@@ -35,7 +35,6 @@ while ~done
                 cfg.fixupLocs = rearrangedLocs;
                 elec = placeElectrodes(cfg, head_surface);
                 rearrangedLocs = elec.elecpos(:,:);
-                close
                 disp('Press "c" to compute new assignment and show updated plot');
             end
         elseif strcmp(key,'c')

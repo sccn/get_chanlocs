@@ -123,7 +123,6 @@ elseif isempty(regexp(opts.saveName, '.txt','once'))
     fprintf('Appending file extension ".txt" to saveName\n');
     opts.saveName = [opts.saveName,'.txt']; end
 
-
 %% anonymize face
 if opts.anonymizeFace
 fprintf('Anonymizing face by replacing skintones with grey...\n')
@@ -136,23 +135,17 @@ head_surface = ft_read_headshape([objPath, filesep, getfield(dir([objPath filese
     'unit', 'mm', 'grayTextures', opts.grayTextures);
 
 %% locate fiducials and align
-fprintf('Select (in order) Nasion, Left Helix/Tragus Intersection, and Right Helix/Tragus Intersection...\n')
-cfg = [];
-cfg.method = 'headshape';
-cfg.channel = {'NAS','LHT','RHT'}';
-fiducials = ft_electrodeplacement(cfg,head_surface);
-close gcf
+fiducials = placeFiducials(head_surface);
 
-fprintf('Using fiducials to align to BTi coordinates...\n')
-cfg = [];
-cfg.method = 'fiducial';
-cfg.coordsys = 'bti';
+fprintf('Using fiducials to align to CTF (mm) coordinates...\n')
+cfg = []; cfg.method = 'fiducial'; cfg.coordsys = 'ctf';
 cfg.fiducial.nas    = fiducials.elecpos(1,:); %position of NAS
 cfg.fiducial.lpa    = fiducials.elecpos(2,:); %position of LHT
 cfg.fiducial.rpa    = fiducials.elecpos(3,:); %position of RHT
 [h, head_surface] = ft_meshrealign(cfg,head_surface);
 rotatedFiducials = [fiducials.elecpos, ones(3,1)]*h';
 rotatedFiducials(:,end) = [];
+
 %% load reference template montage
 if ~isfield(opts, 'templateSearch')
     load(opts.templatePath);
@@ -188,18 +181,16 @@ clear refMats choice
 
 %% location selection
 cfg = [];
-cfg.method = 'headshape';
 cfg.channel = opts.chanLabels;
 
 if opts.createMontageTemplate == 1
     fprintf('Select electrode locations for the new montage template...\n')
-    elec = ft_electrodeplacement(cfg,head_surface);
+    elec = placeTemplateElectrodes(cfg,head_surface);
 else
     cfg.montageTemplate = montageTemplate; cfg.refLocs = montageTemplate.refLocs; %#ok<NODEF>
     fprintf('Select electrode locations...\n')
     elec = placeElectrodes(cfg,head_surface);
 end
-close gcf
 
 %% autoMapElectrodes
 if ~opts.createMontageTemplate
@@ -215,19 +206,21 @@ if opts.createMontageTemplate
 end
 
 %% move electrodes in towards scalp
-try
-    cfg = [];
-    cfg.elec = elec;
-    cfg.moveinward = opts.moveElecInwards;
-    elec = moveElecInwards(cfg);
-catch e
-    fprintf(e.message)
-    warning('Failed to move electrode positions. Saving unmodified coordinates...')
+if opts.moveElecInwards ~= 0
+    try
+        cfg = [];
+        cfg.elec = elec;
+        cfg.moveinward = opts.moveElecInwards;
+        elec = moveElecInwards(cfg);
+    catch e
+        fprintf(e.message)
+        warning('Failed to move electrode positions. Saving unmodified coordinates...')
+    end
 end
 
 %% format (labels','X','Y','Z') and save ascii for import. delete file afterwards if requested
 % append rotated fiducials
-opts.chanLabels(end+1:end+3) = {'nas','lht','rht'};
+opts.chanLabels(end+1:end+3,:) = {'nas','lht','rht'};
 elec.elecpos(end+1:end+3,:) = rotatedFiducials;
 
 fprintf('Writing electrode locations to txt file...\n')
