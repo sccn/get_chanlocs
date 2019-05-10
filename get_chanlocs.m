@@ -44,6 +44,8 @@
 %                       (including path) of output file to save electrode labels
 %                        and locations. Imported into EEGLAB using readlocs(). Can be set to 
 %                        automatically delete after import (see Optional Inputs: deleteTxtOutput)
+%   'scannerAppName'  - (Default = []) Scanner app name (e.g. itSeez3D or Occipital Scanner)
+%                        to be stored in EEG.chaninfo.get_chanlocs.scannerApp
 %
 % See also:
 %   readlocs, ft_read_headshape, ft_electrodeplacement, ft_meshrealign
@@ -122,6 +124,8 @@ if ~isfield(opts,'saveName') %#ok<ALIGN>
 elseif isempty(regexp(opts.saveName, '.txt','once'))
     fprintf('Appending file extension ".txt" to saveName\n');
     opts.saveName = [opts.saveName,'.txt']; end
+if ~isfield(opts,'scannerAppName')
+    opts.scannerAppName = ''; end
 
 %% anonymize face
 if opts.anonymizeFace
@@ -243,6 +247,12 @@ if opts.deleteTxtOutput == 1
     fprintf('Deleting .txt file with electrode locations...\n')
     delete(opts.saveName)
 end
+
+% add get_chanlocs info to EEG.chaninfo
+pathstr = fileparts(which('get_chanlocs'));
+EEG.chaninfo.get_chanlocs.version = pathstr(end-3:end);
+EEG.chaninfo.get_chanlocs.scannerApp = opts.scannerAppName;
+
 fprintf('Electrode localization by get_chanlocs finished!\n')
 end
 
