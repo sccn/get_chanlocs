@@ -16,9 +16,6 @@
 % Optional Inputs (value 0 or false to turn off):
 %   'anonymizeFace'   - (Default = 0) Overwrite objPath .jpg file to replace 
 %                        skintones with grey to anonymize subject's face
-%   'autoMapElectrodes'- (Default = 1) Implement Hungarian assignment
-%                        to allow selection of channels out of order 
-%                        (see autoMapElectrodes.m)
 %   'chanLabels'      - (Default = {EEG.chanlocs(1,:).labels}') Label names
 %                        for EEG channels (and misc sensors) to be localized.
 %                        Default channel label list is extracted from EEG recording. 
@@ -99,8 +96,6 @@ end
 opts = cell2struct(varargin(2:2:end),varargin(1:2:end),2);
 if ~isfield(opts,'anonymizeFace')
     opts.anonymizeFace = 0; end
-if ~isfield(opts,'autoMapElectrodes')
-    opts.map = 1; end
 if ~isfield(opts,'chanLabels')
     opts.chanLabels = {EEG.chanlocs(:).labels}'; end
 if ~isfield(opts,'createMontageTemplate')
@@ -252,6 +247,7 @@ end
 pathstr = fileparts(which('get_chanlocs'));
 EEG.chaninfo.get_chanlocs.version = pathstr(end-3:end);
 EEG.chaninfo.get_chanlocs.scannerApp = opts.scannerAppName;
+EEG.chaninfo.get_chanlocs.transformMatrix = h;
 
 fprintf('Electrode localization by get_chanlocs finished!\n')
 end
