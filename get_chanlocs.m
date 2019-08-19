@@ -139,8 +139,8 @@ fiducials = placeFiducials(head_surface);
 fprintf('Using fiducials to align to CTF (mm) coordinates...\n')
 cfg = []; cfg.method = 'fiducial'; cfg.coordsys = 'ctf';
 cfg.fiducial.nas    = fiducials.elecpos(1,:); %position of NAS
-cfg.fiducial.lpa    = fiducials.elecpos(2,:); %position of LHT
-cfg.fiducial.rpa    = fiducials.elecpos(3,:); %position of RHT
+cfg.fiducial.lpa    = fiducials.elecpos(2,:); %position of LHJ
+cfg.fiducial.rpa    = fiducials.elecpos(3,:); %position of RHJ
 [h, head_surface] = ft_meshrealign(cfg,head_surface);
 rotatedFiducials = [fiducials.elecpos, ones(3,1)]*h';
 rotatedFiducials(:,end) = [];
@@ -219,7 +219,7 @@ end
 
 %% format (labels','X','Y','Z') and save ascii for import. delete file afterwards if requested
 % append rotated fiducials
-opts.chanLabels(end+1:end+3,:) = {'nas','lht','rht'};
+opts.chanLabels(end+1:end+3,:) = {'nas','lhj','rhj'};
 elec.elecpos(end+1:end+3,:) = rotatedFiducials;
 
 fprintf('Writing electrode locations to txt file...\n')

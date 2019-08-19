@@ -22,10 +22,10 @@ function [elec] = placeFiducials(head_surface)
 %    You should have received a copy of the GNU General Public License
 %    along with FieldTrip. If not, see <http://www.gnu.org/licenses/>.
 %
-cfg.channel = {'NAS','LHT','RHT'}';
+cfg.channel = {'NAS','LHJ','RHJ'}';
 
 % give the user instructions
-fprintf('Select Nasion, Left Helix/Tragus Intersection, and Right Helix/Tragus Intersection...\n')
+fprintf('Select Nasion, Left Helix/Tragus Junction, and Right Helix/Tragus Junction...\n')
 disp('Use the mouse to click on the indicated fiducials');
 disp('Press "r" to remove the last point added');
 disp('Press "+/-" to zoom in/out');
