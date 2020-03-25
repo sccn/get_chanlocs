@@ -1,4 +1,4 @@
-function rearrangedLocs = fixupMapping(refLocs, rearrangedLocs, head_surface)
+function rearrangedLocs = fixupMapping(refLocs, rearrangedLocs, affineTransformedLocs, head_surface)
 
 figure; plotElectrodePairings(refLocs, rearrangedLocs)
 
@@ -40,7 +40,7 @@ while ~done
         elseif strcmp(key,'c')
             if size(rearrangedLocs,1) == size(refLocs,1)
                 rearrangedLocs = autoMapElectrodes(refLocs, rearrangedLocs);
-                hold off; plotElectrodePairings(refLocs, rearrangedLocs)
+                hold off; plotElectrodePairings(refLocs, affineTransformedLocs)
                 disp('Press "r" to remove a selected location');
                 disp('Press "s" to select new location(s)');
                 disp('Press "q" to quit and advance');
@@ -53,10 +53,10 @@ while ~done
     end
 end
 
-function plotElectrodePairings(refLocs, rearrangedLocs)
+function plotElectrodePairings(refLocs, affineTransformedLocs)
 %% visual confirmation plot to check validity of auto mapping
 shape1 = refLocs;
-shape2 = rearrangedLocs;
+shape2 = affineTransformedLocs;
 
 plot3(shape1(:,1),shape1(:,2),shape1(:,3),'o')
 hold on; plot3(shape2(:,1), shape2(:,2), shape2(:,3),'ko')

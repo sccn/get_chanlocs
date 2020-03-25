@@ -1,4 +1,4 @@
-function rearrangedLocs = autoMapElectrodes(refLocs, scrambledLocs)
+function [rearrangedLocs, affineTransformedLocs] = autoMapElectrodes(refLocs, scrambledLocs)
 % map electrode positions from a working model to those from a template 
 % model by minimizing euclidean distance (pdist2)
 %
