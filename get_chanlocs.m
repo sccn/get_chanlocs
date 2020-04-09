@@ -185,6 +185,7 @@ cfg.channel = opts.chanLabels;
 if opts.createMontageTemplate == 1
     fprintf('Select electrode locations for the new montage template...\n')
     elec = placeTemplateElectrodes(cfg,head_surface);
+    elec.elecpos = fixupNewTemplate(cfg.channel, elec.elecpos, head_surface);
 else
     cfg.montageTemplate = montageTemplate; cfg.refLocs = montageTemplate.refLocs; %#ok<NODEF>
     fprintf('Select electrode locations...\n')
