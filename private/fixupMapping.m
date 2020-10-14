@@ -1,6 +1,6 @@
-function rearrangedLocs = fixupMapping(refLocs, rearrangedLocs, affineTransformedLocs, head_surface)
+function rearrangedLocs = fixupMapping(refLocs, rearrangedLocs, affineTransformedRefLocs, head_surface)
 
-figure; plotElectrodePairings(refLocs, rearrangedLocs)
+figure; plotElectrodePairings(affineTransformedRefLocs, rearrangedLocs)
 
 %interactive utility
 disp('Press "r" to remove a selected location');
@@ -39,8 +39,8 @@ while ~done
             end
         elseif strcmp(key,'c')
             if size(rearrangedLocs,1) == size(refLocs,1)
-                [rearrangedLocs,affineTransformedLocs] = autoMapElectrodes(refLocs, rearrangedLocs);
-                clf; plotElectrodePairings(refLocs, affineTransformedLocs);
+                [rearrangedLocs, affineTransformedRefLocs] = autoMapElectrodes(refLocs, rearrangedLocs);
+                clf; plotElectrodePairings(affineTransformedRefLocs, rearrangedLocs);
                 disp('Press "r" to remove a selected location');
                 disp('Press "s" to select new location(s)');
                 disp('Press "q" to quit and advance');
@@ -53,10 +53,10 @@ while ~done
     end
 end
 
-function plotElectrodePairings(refLocs, affineTransformedLocs)
+function plotElectrodePairings(refLocs, rearrangedLocs)
 %% visual confirmation plot to check validity of auto mapping
 shape1 = refLocs;
-shape2 = affineTransformedLocs;
+shape2 = rearrangedLocs;
 
 plot3(shape1(:,1),shape1(:,2),shape1(:,3),'o')
 hold on; plot3(shape2(:,1), shape2(:,2), shape2(:,3),'ko')
@@ -69,4 +69,4 @@ for n = 1:size(shape1,1)
 end
 axis equal vis3d off
 suptitle('Channel Assignment Result'); view(135,35)
-legend('Template Locations','Current Model Locations','Assigned Pairing and Channel Index','Location','northeast')
+legend('Transformed Template Locations','Current Model Locations','Assigned Pairing and Channel Index','Location','northeast')

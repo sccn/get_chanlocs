@@ -155,8 +155,11 @@ else
         switch choice
             case 'Create new template'
                 opts.createMontageTemplate = 1;
-            case 'No'
+            case 'Use MNI template'
                 opts.createMontageTemplate = 0;
+                montageTemplate.refLocs = writeTemplateFromMNI(EEG);
+%             case 'No'
+%                 opts.createMontageTemplate = 0;
         end
     elseif size(refMats,1) == 1
         choice = one_template;
@@ -194,8 +197,8 @@ end
 
 %% autoMapElectrodes
 if ~opts.createMontageTemplate
-    [elec.elecpos, affineTransformedLocsForPlotting] = autoMapElectrodes(montageTemplate.refLocs, elec.elecpos);
-    elec.elecpos = fixupMapping(montageTemplate.refLocs, elec.elecpos, affineTransformedLocsForPlotting, head_surface);
+    [elec.elecpos, affineTransformedRefLocs] = autoMapElectrodes(montageTemplate.refLocs, elec.elecpos);
+    elec.elecpos = fixupMapping(refLocs, elec.elecpos, affineTransformedRefLocs, head_surface);
 end
 
 %% save montageTemplate.mat
