@@ -92,7 +92,11 @@ else
     picture     = imread(image);
     color = uint8(zeros(length(shape.pos),3));
     for i=1:length(shape.pos)
-        color(i,1:3) = picture(round((1-texture(i,2))*length(picture)),1+floor(texture(i,1)*length(picture)),1:3);
+        if any(isnan(texture(i,:))) % holes in model stored as Nan?
+            color(i,1:3) = [128 128 128]; 
+        else
+            color(i,1:3) = picture(round((1-texture(i,2))*length(picture)),1+floor(texture(i,1)*length(picture)),1:3);
+        end
     end
 end
 
