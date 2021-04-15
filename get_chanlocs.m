@@ -198,7 +198,7 @@ end
 %% autoMapElectrodes
 if ~opts.createMontageTemplate
     [elec.elecpos, affineTransformedRefLocs] = autoMapElectrodes(montageTemplate.refLocs, elec.elecpos);
-    elec.elecpos = fixupMapping(refLocs, elec.elecpos, affineTransformedRefLocs, head_surface);
+    elec.elecpos = fixupMapping(montageTemplate.refLocs, elec.elecpos, affineTransformedRefLocs, head_surface);
 end
 
 %% save montageTemplate.mat
