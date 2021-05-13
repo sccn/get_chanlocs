@@ -67,6 +67,9 @@ for n = 1:size(shape1,1)
     text(shape1(n,1)+2.5,shape1(n,2)-2.5,shape1(n,3)+2.5, num2str(n),'HorizontalAlignment','center',...
         'VerticalAlignment','middle','Color',[0 0 0])
 end
-axis equal vis3d off
-suptitle('Channel Assignment Result'); view(135,35)
+axis equal vis3d off; view(135,35)
+supAxes = axes('pos',[0 0.95 1 1],'visible','off');
+text(supAxes,.5,0,['Channel assignment result'],...
+    'FontSize',get(gcf,'defaultaxesfontsize')+4,...
+    'horizontalalignment','center');
 legend('Transformed Template Locations','Current Model Locations','Assigned Pairing and Channel Index','Location','northeast')

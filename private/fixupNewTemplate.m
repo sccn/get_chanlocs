@@ -70,5 +70,7 @@ for locIdx = 1:size(inputLocs,1)
         [num2str(locIdx) '. ' chanLabels{locIdx}], 'HorizontalAlignment','Center', 'Color',[0 0 0])
 end
 
-axis equal vis3d off
-suptitle('New Template Result'); 
+axis equal vis3d off; view(135,35)
+text(supAxes,.5,0,['New template result'],...
+    'FontSize',get(gcf,'defaultaxesfontsize')+4,...
+    'horizontalalignment','center');
