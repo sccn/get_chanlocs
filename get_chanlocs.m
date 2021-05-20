@@ -80,6 +80,11 @@
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1.07  USA
 
 function EEG = get_chanlocs(EEG, objPath, varargin)
+[~, versnum] = eeg_getversion;
+if versnum < 2020
+    error('Please use a newer version of EEGLAB (v2020.0+)')
+end
+
 %% check 3D model input path for [.obj, .jpg,.mtl]
 if nargin < 1
 	help get_chanlocs;
