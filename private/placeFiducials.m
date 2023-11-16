@@ -25,12 +25,14 @@ function [elec] = placeFiducials(head_surface)
 cfg.channel = {'NAS','LHJ','RHJ'}';
 
 % give the user instructions
-fprintf('Select Nasion, Left Helix/Tragus Junction, and Right Helix/Tragus Junction...\n')
-disp('Use the mouse to click on the indicated fiducials');
-disp('Press "r" to remove the last point added');
-disp('Press "+/-" to zoom in/out');
-disp('Press "w/a/s/d" to rotate');
-disp('Press "q" to quit and advance when done');
+str = [ 'Select Nasion, Left and Right Ear (at the Helix/Tragus Junction)' 10 ...
+        'Use the mouse to click on the indicated fiducials' 10 ...
+        '' 10 ...
+        'Press "r" to remove the last point added (you will need to press "r" often)' 10 ...
+        'Press "+/-" to zoom in/out and press "w/a/s/d" to rotate (or use rotation tool)' 10 ...
+        'Press "q" to quit and advance when done' ];
+warndlg2(str);
+
 % open a figure
 figure('Name','getchanlocs')
 
@@ -39,6 +41,8 @@ headshape = fixpos(head_surface);
 ft_plot_mesh(headshape);
 xyz = ft_select_point3d(cfg);
 close gcf
+
+warndlg2('Repeat the procedure to assess precision of manual selection');
 
 xyz_old = xyz;
 figure('Name','getchanlocs')
@@ -49,15 +53,23 @@ close gcf
 pass = 0;
 
 while ~pass
-    if any(diag(pdist2(xyz_old,xyz)) > 2)
-        xyz_old = xyz;
-        figure('Name','getchanlocs')
-        ft_plot_mesh(headshape);
-        warning('Fiducial distance tolerance (2mm) exceeded. Select fiducials again.')
-        xyz = ft_select_point3d(cfg);
-        close gcf
+    dst = max(diag(pdist2(xyz_old,xyz)));
+    if any(dst > 2)
+        str = [sprintf('Fiducial distance tolerance is %1.1fmm exceeded.', dst) 10 ...
+              'The 2mm threshold is exceeded and we strongfly suggest' 10 ...
+               'you select the fiducial again.'];
+        res = questdlg2(str, 'Fiducial selection', 'Accept as is', 'Select again', 'Select again');
+        if isequal(res, 'Accept as is')
+            pass = true;
+        else
+            xyz_old = xyz;
+            figure('Name','getchanlocs')
+            ft_plot_mesh(headshape);
+            xyz = ft_select_point3d(cfg);
+            close gcf
+        end
     else
-        fprintf('Fiducial distances within tolerance. Averaging...\n')
+        fprintf('Fiducial distances within 2mm tolerance. Averaging...\n')
         xyz = (xyz+xyz_old)/2;
         pass = 1;
     end

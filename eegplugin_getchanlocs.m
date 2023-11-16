@@ -37,4 +37,4 @@ end;
 % create menu
 toolsMenu = findobj(fig, 'tag', 'tools');
 uimenu(toolsMenu, 'label', 'Locate electrodes in a 3D head image',...
-    'callback', 'gui_getchanlocs','separator','on');
+    'callback', 'EEG = get_chanlocs(EEG);','separator','on');
