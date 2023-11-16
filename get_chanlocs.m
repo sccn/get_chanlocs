@@ -96,7 +96,7 @@ if ~isfield(opts,'createMontageTemplate')
     opts.createMontageTemplate = 0; end
 if ~isfield(opts,'fiducials')
     opts.fiducials = [];
-    opts.fiducials = [ 3.0022  -65.0460  109.4490;  76.5070  -39.5725   12.4267; -71.8769  -38.4040    9.6297 ]; end
+    %opts.fiducials = [ 3.0022  -65.0460  109.4490;  76.5070  -39.5725   12.4267; -71.8769  -38.4040    9.6297 ]; end
 if ~isfield(opts,'deleteTxtOutput')
     opts.deleteTxtOutput = 1; end
 if ~isfield(opts, 'grayTextures')
