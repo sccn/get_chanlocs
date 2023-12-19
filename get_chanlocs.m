@@ -43,6 +43,14 @@
 %                        automatically delete after import (see Optional Inputs: deleteTxtOutput)
 %   'scannerAppName'  - (Default = []) Scanner app name (e.g. itSeez3D or Occipital Scanner)
 %                        to be stored in EEG.chaninfo.get_chanlocs.scannerApp
+%   'min_dim'         - (Default = 200) If the minimum range of the scan in
+%                        any dimension is less than the MIN_DIM, the scan is unlikely to be 
+%                        of the huamn head. Therefore, all dimensions will be scaled up by one order.
+%                       To turn off set 'min_dim' 0.
+%   'max_dim'         - (Default = 1000) If the maximum range of the scan in
+%                        any dimension is greater than the MAX_DIM, the scan is unlikely to be 
+%                        of the huamn head. Therefore, all dimensions will be scaled down by one order.
+%                       To turn off set 'max_dim' 0.
 %
 % See also:
 %   readlocs, ft_read_headshape, ft_electrodeplacement, ft_meshrealign
@@ -109,6 +117,10 @@ if ~isfield(opts,'deleteTxtOutput')
     opts.deleteTxtOutput = 1; end
 if ~isfield(opts, 'grayTextures')
     opts.grayTextures = 0; end
+if ~isfield(opts, 'min_dim')
+    opts.min_dim = 200; end
+if ~isfield(opts, 'max_dim')
+    opts.max_dim = 1000; end
 if ~isfield(opts,'moveElecInwards')
     opts.moveElecInwards = 0; end
 if ~isfield(opts,'templatePath') %#ok<ALIGN>
@@ -136,7 +148,25 @@ end
 %% load model
 fprintf('Loading 3D model in mm scale...\n')
 head_surface = ft_read_headshape([objPath, filesep, getfield(dir([objPath filesep '*.obj']),'name')],...
-    'unit', 'mm', 'grayTextures', opts.grayTextures);
+    'unit', 'mm','grayTextures', opts.grayTextures);
+
+% While ft_convert_units is meant to infer the units if they are not
+% explicitly provided, the implementation is so unintuituve that I would
+% rather import every scan as mm, and then scale them here to mm.
+
+SCALE_UP = 0;
+if min(range(head_surface.pos,1)) < opts.min_dim
+    warning("the scan range is less than the minimum accepatble range for human head (200mm), scaling up the scan by one order")
+    SCALE_UP = 1;
+    head_surface.pos = head_surface.pos * 10;
+end
+if max(range(head_surface.pos,1)) > opts.max_dim
+    if SCALE_UP
+        error("The scan is heavily out of proportion, one dim is an order of magnitude smaller than the other, please redo the scan")
+    end
+    warning("the scan range is greater than the maximum accepatble range for human head (1000mm), scaling down the scan by one order")
+    head_surface.pos = head_surface.pos / 10;
+end
 
 %% locate fiducials and align
 fiducials = placeFiducials(head_surface);
